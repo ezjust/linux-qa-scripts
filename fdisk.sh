@@ -29,7 +29,7 @@ function install_agent {
 	$pathtoinstaller -f # It will run installer in non-interactive mode.
 
 }
-function services {
+function service_kernel {
 	MODULE="appassure_vss"
 	echo "=========================================================="
 	echo "CHECKING SERVICES:"
@@ -42,7 +42,24 @@ function services {
 		exit 0
 	fi
 }
+
+function service_agent {
+	echo "==========================================================="
+	echo "Checking AGENT SERVICE:"
+	if ps ax | grep -v grep | grep mono ; then
+		echo "Agent service is runnig. All is okay."
+		exit 0
+	else 
+		echo "Agent service IS NOT running. I will do it"
+		/etc/init.d/appassure-agent start
+		exit 0
+	fi
+}
+
+service_agent
 #install_agent
-#services
+#service_kernel
+
+
 
 
