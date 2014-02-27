@@ -56,9 +56,22 @@ function service_agent {
 	fi
 }
 
-service_agent
+#service_agent
 #install_agent
 #service_kernel
+function chechgroup {
+	if groups $USERNAME | egrep "appassure|sudo|wheel"; then
+		echo "$USERNAME exists in list of allowed groups";
+		echo 0
+	else
+		echo "$USERNAME IS NOT EXIST IN LIST OF ALLOWED GROUPS. I WILL DO IT";
+		usermod -a -G appassure $USERNAME 
+	fi
+}
+
+
+
+
 
 
 
