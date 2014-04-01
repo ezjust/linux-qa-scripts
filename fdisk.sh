@@ -20,7 +20,7 @@ function fdisk {
 #fdisk
 function install_agent {
 	findinstallers=`find /home appassure-installer* | grep /appassure-installer`;
-	echo "THERE IS A LIST OF INSTALLER ON YOUR MACHINE: "
+	echo "THERE IS A LIST OF INSTALLERS ON YOUR MACHINE: "
 	ls -t $findinstallers
 	pathtoinstaller=`ls -t $findinstallers | head -n 1`;
 	echo "=========================================================="
