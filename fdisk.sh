@@ -1,78 +1,86 @@
 #!/bin/bash
-#This script is written by Maxim Bugaiov.
-#It should provide you ablity to specify default volume for testing. By default you need to do it here in script. "device=/dev/sd*" - is example
-#Script should install the newest agent from all existing on your test machine and run all services
-#Firts one it should attach volume to the bsctl and run bsrw to the /dev/null
-#We will calculate time of creating data-store for testing volume and detecting any issues during bsctl and bsrw processes.
+#__author__ = 'mbugaiov'
+#__version__ = "1.0"
+# This script is developed for Linux QA Team. The main goal is to help QAs to perform
+# everyday tasks more fuster.
+# In this script we receive parameter from command line and perform some checks to make
+# sure that device matches all our parameters.
+# Script will create 3 primary partitions and 4 extended partitions. 6 from them will have
+# the same size, which is equal to "disk_size / 7". Last one extended partition will fill up
+# all available free space on disk. 
+# In new vesrion will be added:
+# - File system creation for partitions
+# - Mount point creation
+# - Mounting partitions
+# - Addition "fstab" with information about new disks.
 
+
+clear  # clear terminal window
+device=$1
+count=`echo $device | awk '{print length}'` >> /dev/null 2>&1
 
 if [ `whoami` != "root" ]; then
-	echo "You do not have rights to run this script. Please, use "root" user."
-	exit 1;
+	echo "This sciprt needs to be run as ROOT."
+	exit 0
 fi
-function fdisk {
-	device=/dev/sdb # You can specify default device for testing
-	umount $device
-	(echo d; echo ; echo w) | grep $device # We will delete partition if it existes 
-	sleep 1;
-	(echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk $device # Create new partition with all default settings using command line
+
+if [ -z "$device" ]; then 
+	echo "You need to specify the path to the device you want to partition."
+	echo "Here is an example how to do it:"
+	echo ""
+	echo "./fdisk /path.to.the.disk"
+	exit 0
+elif [ "$count" != "8" ]; then
+	echo "Device must be like "/dev/sdb" without partition number"
+	exit 0
+elif [ -b "$device" ]; then 
+	echo $device " is device we have received from command line and is going to be partitioned";  
+else
+	echo $device " does not exist"
+	exit 0
+fi
+
+
+sb=`echo $device | cut -c6-`;
+
+partitionset=`cat /proc/partitions | grep $sb[1-9] | awk '{print $4}'`
+
+partnumbers=`egrep -oh "sdb[1-9]" /proc/partitions | cut -c4-`;  
+
+sizeinblocks=`cat /proc/partitions | grep -w sdb | awk '{print $3}'`
+
+sizeinMB=`echo $sizeinblocks /1024 |bc`
+
+partsize=`echo $sizeinMB / 7 | bc`
+
+function fdisk_delete {
+	for i in $partnumbers
+	do
+		(echo d; echo $i; echo w) | fdisk $device >> /dev/null 2>&1
+		sleep 0.2;
+		echo "Partition $device$i has been removed"
+	done
 }
-#fdisk
-function install_agent {
-	findinstallers=`find /home appassure-installer* | grep /appassure-installer`;
-	echo "THERE IS A LIST OF INSTALLERS ON YOUR MACHINE: "
-	ls -t $findinstallers
-	pathtoinstaller=`ls -t $findinstallers | head -n 1`;
-	echo "=========================================================="
-	echo $pathtoinstaller IS THE NEWEST VERSION THAT YOU HAVE ON THIS MACHINE.
-	echo "=========================================================="
-	$pathtoinstaller -f # It will run installer in non-interactive mode.
+fdisk_delete
 
+function fdisk_create {
+# will be created 3 primary partitions with the size 4GB
+	for i in {1..3}
+	do 
+		(echo n; echo p; echo $i; echo ; echo "+"$partsize"M"; echo w) | fdisk $device >> /dev/null 2>&1
+		sleep 0.2
+		echo "Primary partition $device$i with the size $partsize"M" has been created"
+	done
+# extended partition with number 4 will be created. 
+	(echo n; echo e; echo ; echo ; echo w) | fdisk $device >> /dev/null 2>&1
+	for i in {5..7}
+	do
+		(echo n; echo ; echo "+"$partsize"M"; echo w) | fdisk $device >> /dev/null 2>&1
+		sleep 0.2
+		echo "Extended partition $device$i with the size $partsize"M" has been created."	
+	done
+	(echo n; echo ; echo ; echo w) | fdisk $device >> /dev/null 2>&1
 }
-function service_kernel {
-	MODULE="appassure_vss"
-	echo "=========================================================="
-	echo "CHECKING SERVICES:"
-	if lsmod | grep $MODULE ; then
-		echo "Module $MODULE is loaded"
-		exit 0
-	else 
-		echo "Module $MODULE IS NOT loaded. I will do it"
-		modprobe $MODULE
-		exit 0
-	fi
-}
+fdisk_create
 
-function service_agent {
-	echo "==========================================================="
-	echo "Checking AGENT SERVICE:"
-	if ps ax | grep -v grep | grep mono ; then
-		echo "Agent service is runnig. All is okay."
-		exit 0
-	else 
-		echo "Agent service IS NOT running. I will do it"
-		/etc/init.d/appassure-agent start
-		exit 0
-	fi
-}
-
-#service_agent
-#install_agent
-#service_kernel
-function chechgroup {
-	if groups $USERNAME | egrep "appassure|sudo|wheel"; then
-		echo "$USERNAME exists in list of allowed groups";
-		echo 0
-	else
-		echo "$USERNAME IS NOT EXIST IN LIST OF ALLOWED GROUPS. I WILL DO IT";
-		usermod -a -G appassure $USERNAME 
-	fi
-}
-
-
-
-
-
-
-
-
+echo "Finish!"
