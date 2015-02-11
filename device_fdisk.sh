@@ -17,12 +17,10 @@
 
 clear  # clear terminal window
 device=$1
-echo $device is device
 count=`echo $device | awk '{print length}'` >> /dev/null 2>&1
-echo $count is count
 null=` >> /dev/null 2>&1`
 if [ `whoami` != "root" ]; then
-	echo "This sciprt needs to be run as ROOT."
+	echo "$(tput setaf 1)This sciprt needs to be run as ROOT.$(tput sgr0)"
 	exit 0
 fi
 
@@ -38,7 +36,7 @@ elif [ "$count" != "8" ]; then
 elif [ -b "$device" ]; then 
 	echo $device " is device we have received from command line and is going to be partitioned";  
 else
-	echo $device " does not exist"
+	echo $device "$(tput setaf 2) does not exist$(tput sgr0)"
 	exit 0
 fi
 
@@ -49,8 +47,6 @@ echo $sb is sb
 sed -i "/^\/dev\/$sb/d" /etc/fstab ## removing string in fstab, matched by $device
 
 
-partitionset=`cat /proc/partitions | grep $sb[1-9] | awk '{print $4}'`
-echo $partitionset is partitionset
 partnumbers=`egrep -oh "sdb[1-9]" /proc/partitions | cut -c4-`;  
 echo $partnumbers is purtnumbers
 sizeinblocks=`cat /proc/partitions | grep -w $sb | awk '{print $3}'`
@@ -64,7 +60,7 @@ function fdisk_delete {
 	do
 		(echo d; echo $i; echo w) | fdisk $device >> /dev/null 2>&1
 		sleep 0.2;
-		echo "Partition $device$i has been removed"
+		echo "$(tput smul)Partition $device$i has been removed$(tput sgr0)"
 	done
 }
 fdisk_delete
@@ -75,7 +71,7 @@ function fdisk_create {
 	do 
 		(echo n; echo p; echo $i; echo ; echo "+"$partsize"M"; echo w) | fdisk $device >> /dev/null 2>&1
 		sleep 0.2
-		echo "Primary partition $device$i with the size $partsize"M" has been created"
+		echo "$(tput setaf 4)Primary partition $device$i with the size $partsize"M" has been created$(tput sgr0)"
 	done
 # extended partition with number 4 will be created. 
 	(echo n; echo e; echo ; echo ; echo w) | fdisk $device >> /dev/null 2>&1
@@ -83,13 +79,17 @@ function fdisk_create {
 	do
 		(echo n; echo ; echo "+"$partsize"M"; echo w) | fdisk $device >> /dev/null 2>&1
 		sleep 0.2
-		echo "Extended partition $device$i with the size $partsize"M" has been created."	
+		echo "$(tput setaf 3)Extended partition $device$i with the size $partsize"M" has been created.$(tput sgr0)"	
 	done
 	(echo n; echo ; echo ; echo w) | fdisk $device >> /dev/null 2>&1
+	echo "$(tput setaf 3)Extended partition $device"8" has been created$(tput setaf 3)"
 }
 fdisk_create
 
-echo "Finish! FDISK!"
+
+
+partitionset=`cat /proc/partitions | grep $sb[1-9] | awk '{print $4}'`
+
 
 function makefolder {
 	for i in $partitionset
@@ -102,7 +102,6 @@ function makefolder {
 	echo "Mount points were created/updated"
 }
 makefolder
-echo FOLDERS CREATED
 function umountpart {
 	for i in $partitionset
 	do
@@ -110,12 +109,11 @@ function umountpart {
 	done
 }
 umountpart
-echo UMOUNT PASSED
 function mountpart {
 	for i in $partitionset
 	do
 		echo  mount "/dev/"$i "/mnt/"$i
-		mount "/dev/"$i "/mnt/"$i #>> /dev/null 2>&1
+		mount "/dev/"$i "/mnt/"$i >> /dev/null 2>&1
 	done
 }
 
@@ -123,20 +121,19 @@ function mountpart {
 function makefs {
 makefsset=('ext3' 'ext4' 'xfs')
 makepartset=( $partitionset )
-echo ${makepartset[0]}
-mkfs.${makefsset[0]} /dev/${makepartset[0]} #>> /dev/null 2>&1
+mkfs.${makefsset[0]} /dev/${makepartset[0]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[1]} /dev/${makepartset[1]} #>> /dev/null 2>&1
+mkfs.${makefsset[1]} /dev/${makepartset[1]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[2]} /dev/${makepartset[2]} #>> /dev/null 2>&1
+mkfs.${makefsset[2]} /dev/${makepartset[2]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[0]} /dev/${makepartset[4]} #>> /dev/null 2>&1
+mkfs.${makefsset[0]} /dev/${makepartset[4]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[1]} /dev/${makepartset[5]} #>> /dev/null 2>&1
+mkfs.${makefsset[1]} /dev/${makepartset[5]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[2]} /dev/${makepartset[6]} #>> /dev/null 2>&1
+mkfs.${makefsset[2]} /dev/${makepartset[6]} >> /dev/null 2>&1
 sleep 0.2
-mkfs.${makefsset[0]} /dev/${makepartset[7]} #>> /dev/null 2>&1
+mkfs.${makefsset[0]} /dev/${makepartset[7]} >> /dev/null 2>&1
 echo "File systems have been created."
 }
 
@@ -155,10 +152,7 @@ echo "/dev/${makepartset[7]}" "/mnt/${makepartset[7]}" "${makefsset[0]}" "defaul
 
 
 makefs
-echo MAKEFS
 mountpart
-echo MOUNTPART
 fstab
-echo FSTAB
-echo "All tasks COMPLETED."
+echo "$(tput bold)$(tput setaf 7)All tasks COMPLETED.$(tput sgr0)"
 
