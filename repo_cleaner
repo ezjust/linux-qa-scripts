@@ -1,0 +1,27 @@
+#!/bin/bash
+
+echo "Repository cleaner"
+if [ -f /etc/lsb-release ]
+then
+operator="apt-get"
+fi
+
+if [ -f /etc/redhat-release ]
+then
+operator="yum"
+fi
+
+echo $operator
+
+
+/etc/init.d/rapidrecovery-agent stop 1>&2 2>/dev/null
+systemctl stop repidrecovery-agent 1>&2 2>/dev/null
+rmmod rapidrecovery-vss 1>&2 2>/dev/null
+
+
+$operator -y remove rapidrecovery-agent
+$operator -y remove rapidrecovery-mono
+$operator -y remove dkms
+$operator -y remove rapidrecovery-vss
+$operator -y remove rapidrecovery-repo
+$operator clean all
