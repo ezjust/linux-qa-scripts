@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 build=$1
 package_name=rapidrecovery-agent
 rr_config=/usr/bin/rapidrecovery-config
@@ -8,7 +8,11 @@ if [ -z "$build" ]; then
         echo "You need to specify the path to the build you want to install."
         echo "Here is an example how to do it:"
         echo ""
-        echo "./agent_install /path_to_the_build"
+        echo "./agent_install /path_to_the_build -- if you wish to install dedicated repo package. This repo-package needs to be placed into the same folder, as "agent_install" script is. "
+	echo ""
+	echo "./agent_install VERSION"
+	echo "where VERSION is the branch version and should be submited like "6.1.0" or "7.0.0""
+	echo ""
         exit 0
 fi
 
