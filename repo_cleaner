@@ -1,15 +1,27 @@
 #!/bin/bash
 
 echo "Repository cleaner"
-if [ -f /etc/lsb-release ]
+if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]
 then
 operator="apt-get"
+package="dpkg"
+installed="dpkg -l"
 fi
 
 if [ -f /etc/redhat-release ]
 then
 operator="yum"
+package="rpm"
+installed="rpm -qa"
 fi
+
+if [ -f /etc/SuSE-release ]
+then
+operator="zypper"
+package="rpm"
+installed="rpm -qa"
+fi
+
 
 echo $operator
 
@@ -18,10 +30,38 @@ echo $operator
 systemctl stop repidrecovery-agent 1>&2 2>/dev/null
 rmmod rapidrecovery-vss 1>&2 2>/dev/null
 
+if [ $operator="zypper" ]
+then
+	$operator remove -y rapidrecovery-agent
+	$operator remove -y rapidrecovery-mono
+	$operator remove -y dkms
+	$operator remove -y rapidrecovery-repo
+	$operator remove -y nbd
+	rmmod rapidrecovery-vss
+	$operator clean
+else
+	$operator -y remove rapidrecovery-agent
+	$operator -y remove rapidrecovery-mono
+	$operator -y remove dkms
+	$operator -y remove rapidrecovery-vss
+	$operator -y remove rapidrecovery-repo
+	rmmod rapidrecovery-vss
+	$operator clean all
+fi
 
-$operator -y remove rapidrecovery-agent
-$operator -y remove rapidrecovery-mono
-$operator -y remove dkms
-$operator -y remove rapidrecovery-vss
-$operator -y remove rapidrecovery-repo
-$operator clean all
+not_removed=`$installed | grep rapid | awk '{print $2}'`
+if [ -z $not_removed ]
+then 
+	tput setaf 2; echo "All RR packages were removed"; tput sgr0
+		else 
+			echo $not_removed package is not REMOVED. Will try to remove it with configuration files.
+			$operator -y purge $not_removed
+			if [ -z `$installed | grep $not_removed | awk '{print $2}'` ]
+			then 
+		 		tput setaf 3; echo $not_removed package has been removed with configuration files; tput sgr0
+				return 0	
+					else 
+						tput setaf 1; echo "Package has not been removed even using configuration option. PLEASE INVESTIGATE THIS FACT."; tput sgr0
+						return 1
+			fi
+fi

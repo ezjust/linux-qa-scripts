@@ -1,0 +1,43 @@
+#!/usr/bin/bash
+#set -x
+
+if [ -z "$1" ]
+	then
+		echo "No arguments supplied. You need to set the amount of iteration. For example: "./D-34963 100""
+		exit 1
+fi
+
+bsctl=`bsctl -l`
+count=$1;
+device=(`bsctl -l | grep -vE "^Filesystem|shm|boot" |  awk '{ print $1 }'`)
+FILE=./D-34963_results.txt
+rm -rf $FILE >> /dev/null
+k=0
+z=0
+
+size=${#device[@]}
+while [ $count -ge $k ]; do
+	for ((z=0; z<$size; z++)); do
+		dev=${device[z]}
+		echo $dev will be tested
+		bsctl -s $dev >> /dev/null
+		snapdevice=(`bsctl -l | grep "sbd" |  awk '{ print $3 }'`);
+		/opt/apprecovery/scripts/aafs_blist /dev/$snapdevice
+
+		if [ $? == "1" ]
+			then
+				echo $dev FAILED >> $FILE
+		fi
+
+		#sleep 0.1
+		bsctl -e $dev >> /dev/null
+	done
+	k=$(( k+1 ))
+done
+
+if [ -f $FILE ]
+	then
+		date >> $FILE
+fi
+
+exit 0
