@@ -11,21 +11,21 @@ This script is used by the Linux QA Team to run everyday tasks.
 
 	Example: 
 		agent_install -h
+		agent_install -logs
 		agent_install -clean
 		agent_install -install 7.0.0
 		agent_install --install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
 '
 
-
 command=$1
 build=$2
-if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && -z "$build" ]]; then
-	sed -n 4,16p agent_install
+if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && "$command" != "-logs" && -z "$build" ]]; then
+	sed -n 4,17p agent_install
 	exit 1
 fi
 
 if [[ "$command" == "-h" ]]; then
-	sed -n 4,16p agent_install
+	sed -n 4,17p agent_install
 	exit 0
 fi
 
@@ -104,7 +104,7 @@ fi
 
 echo $build
 
-if [ "$command" = "clean" ]
+if [ "$command" = "-clean" ]
 then
 	repo_cleaner
 	exit 0	
@@ -227,17 +227,32 @@ firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 echo "3 $firewall" | $rr_config # use first available option to configure firewall.
 }
 
-install_repo
-installation # we run installation process
-configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 
 function details {
 IP=$(ifconfig | grep inet | head -1 | awk '{print $2}')
 
 echo "$IP"
 echo "$user::$password"
+echo "$(uname -r)"
  
 }
 
 
+function get_logs {
+log_dir=/home/$user/Logs
+mkdir $log_dir
+cp -R /var/log/apprecovery $log_dir
+cp /var/log/messages $log_dir >> /dev/null
+cp /var/log/syslog $log_dir >> /dev/null
+tar -zcvf Logs-$IP-$(date | awk {'print $5'}) $log_dir
+}
+
+if [[ "$command" == "-logs" ]]; then
+	get_logs
+	exit 0
+fi
+
+install_repo
+installation # we run installation process
+configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 details # details are provided for further protection
