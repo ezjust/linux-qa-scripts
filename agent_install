@@ -1,19 +1,98 @@
 #!/bin/bash
 #set -x
+
 build=$1
 package_name=rapidrecovery-agent
 rr_config=/usr/bin/rapidrecovery-config
+
+
 
 if [ -z "$build" ]; then
         echo "You need to specify the path to the build you want to install."
         echo "Here is an example how to do it:"
         echo ""
         echo "./agent_install /path_to_the_build -- if you wish to install dedicated repo package. This repo-package needs to be placed into the same folder, as "agent_install" script is. "
+        echo "NOTE, that your build is executeble. If it is not, please it: "chmod +x /path_to_the_build""""
 	echo ""
 	echo "./agent_install VERSION"
 	echo "where VERSION is the branch version and should be submited like "6.1.0" or "7.0.0""
 	echo ""
         exit 0
+fi
+
+
+function repo_cleaner {
+echo "Repository cleaner"
+if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]
+then
+operator="apt-get"
+package="dpkg"
+installed="dpkg -l"
+fi
+
+if [ -f /etc/redhat-release ]
+then
+operator="yum"
+package="rpm"
+installed="rpm -qa"
+fi
+
+if [ -f /etc/SuSE-release ]
+then
+operator="zypper"
+package="rpm"
+installed="rpm -qa"
+fi
+
+echo $operator
+
+/etc/init.d/rapidrecovery-agent stop 1>&2 2>/dev/null
+systemctl stop repidrecovery-agent 1>&2 2>/dev/null
+rmmod rapidrecovery-vss 1>&2 2>/dev/null
+
+if [ $operator="zypper" ]
+then
+	$operator remove -y rapidrecovery-agent
+	$operator remove -y rapidrecovery-mono
+	$operator remove -y dkms
+	$operator remove -y rapidrecovery-repo
+	$operator remove -y nbd
+	rmmod rapidrecovery-vss
+	$operator clean
+else
+	$operator -y remove rapidrecovery-agent
+	$operator -y remove rapidrecovery-mono
+	$operator -y remove dkms
+	$operator -y remove rapidrecovery-vss
+	$operator -y remove rapidrecovery-repo
+	rmmod rapidrecovery-vss
+	$operator clean all
+fi
+
+not_removed=`$installed | grep rapid | awk '{print $2}'`
+if [ -z $not_removed ]
+then 
+	tput setaf 2; echo "All RR packages were removed"; tput sgr0
+		else 
+			echo $not_removed package is not REMOVED. Will try to remove it with configuration files.
+			$operator -y purge $not_removed
+			if [ -z `$installed | grep $not_removed | awk '{print $2}'` ]
+			then 
+		 		tput setaf 3; echo $not_removed package has been removed with configuration files; tput sgr0
+				return 0	
+					else 
+						tput setaf 1; echo "Package has not been removed even using configuration option. PLEASE INVESTIGATE THIS FACT."; tput sgr0
+						return 1
+			fi
+fi
+
+}
+echo $build
+
+if [ "$build" = "clean" ]
+then
+	repo_cleaner
+	exit 0	
 fi
 
 echo "Agent Installer Script"
@@ -26,11 +105,12 @@ os="debian"
 	if [[ `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "16"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "15" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "8" ]]; then
 	version="8"
 	fi
+	
 	if [[ `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "12"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "14" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "7" ]]; then
 	version="7"
 	fi
 
-arch=`arch`
+arch=$(arch)
 package="deb"
 fi
 
@@ -40,8 +120,8 @@ operator="yum"
 list="rpm -qa"
 install="rpm -i"
 os=rhel
-version=`cat /etc/os-release | grep PRETTY_NAME | awk '{print $3}'`
-arch=`arch`
+version=$(cat /etc/os-release | grep PRETTY_NAME | awk '{print $3}')
+arch=$(arch)
 package="rpm"
 fi
 
@@ -51,8 +131,8 @@ operator="zypper"
 list="rpm -qa"
 install="rpm -i"
 os=sles
-version=`cat /etc/SuSE-release | grep VERSION | awk '{print $3}'`
-arch=`arch`
+version=$(cat /etc/SuSE-release | grep VERSION | awk '{print $3}')
+arch=$(arch)
 package="rpm"
 fi
 
@@ -69,11 +149,22 @@ echo ${#build}
 if [ "${#build}" -gt "5" ]
 then 
 	$install $build
-	echo "I AM HERE"
+	if [ $? -ne "0" ]
+	then
+		echo "$build is not available for installation."
+		exit 1
+	fi
 else
-	wget https://s3.amazonaws.com/repolinux/$build/repo-packages/rapidrecovery-repo-$os$version-$arch.$package -O repo.file
+	wget "https://s3.amazonaws.com/repolinux/$build/repo-packages/rapidrecovery-repo-$os$version-$arch.$package" -O "repo.file"
+
+	if [ $? -ne "0" ]
+	then
+		echo "$build is not available for installation"
+		exit 1
+	fi
 	chmod +x repo.file
-	$install repo.file
+	$install repo.file 
+		
 fi
 }
 
@@ -81,7 +172,7 @@ fi
 
 
 function installation {
-if [ $operator="zypper" ]
+if [ $operator = "zypper" ]
 then
 $operator clean
 $operator install -y $package_name
@@ -117,7 +208,7 @@ echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
 echo "4 all" | $rr_config # install rapidrecovery-vss into all available system kernels
 echo "5" | $rr_config # allow to start agent immediately
-firewall=`$rr_config -f list | awk -F'[_/]' '{print $1}'`
+firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 echo "3 $firewall" | $rr_config # use first available option to configure firewall.
 }
 
@@ -126,10 +217,10 @@ installation # we run installation process
 configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 
 function details {
-IP=`ifconfig | grep inet | head -1 | awk '{print $2}'`
+IP=$(ifconfig | grep inet | head -1 | awk '{print $2}')
 
-echo $IP
-echo $user::$password
+echo "$IP"
+echo "$user::$password"
  
 }
 
