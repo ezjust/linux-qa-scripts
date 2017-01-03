@@ -1,24 +1,38 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #set -x
+: '
+This script is used by the Linux QA Team to run everyday tasks.
+	Usage: agent_install [options] <argv>
 
-build=$1
+		-h 			Show help options.
+		-clean   	Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed.
+		-install 	<Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed.
+					<Repo file> - if this argv is used, please, make sure that repo file is executable. To make file executable, please do the next: "chmod +x file".
+
+	Example: 
+		agent_install -h
+		agent_install -clean
+		agent_install -install 7.0.0
+		agent_install --install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
+'
+
+
+command=$1
+build=$2
+if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && -z "$build" ]]; then
+	sed -n 4,16p agent_install
+	exit 1
+fi
+
+if [[ "$command" == "-h" ]]; then
+	sed -n 4,16p agent_install
+	exit 0
+fi
+
+
+
 package_name=rapidrecovery-agent
 rr_config=/usr/bin/rapidrecovery-config
-
-
-
-if [ -z "$build" ]; then
-        echo "You need to specify the path to the build you want to install."
-        echo "Here is an example how to do it:"
-        echo ""
-        echo "./agent_install /path_to_the_build -- if you wish to install dedicated repo package. This repo-package needs to be placed into the same folder, as "agent_install" script is. "
-        echo "NOTE, that your build is executeble. If it is not, please it: "chmod +x /path_to_the_build""""
-	echo ""
-	echo "./agent_install VERSION"
-	echo "where VERSION is the branch version and should be submited like "6.1.0" or "7.0.0""
-	echo ""
-        exit 0
-fi
 
 
 function repo_cleaner {
@@ -87,9 +101,10 @@ then
 fi
 
 }
+
 echo $build
 
-if [ "$build" = "clean" ]
+if [ "$command" = "clean" ]
 then
 	repo_cleaner
 	exit 0	
@@ -178,7 +193,7 @@ $operator clean
 $operator install -y $package_name
 	if [ "$?" -eq "1" ]
 	then
-	echo "Errors occured during packages downloading"
+	echo "Errors occurred during packages downloading"
 	exit 1
 	fi 
 
@@ -189,7 +204,7 @@ else
 
 	if [ "$?" -eq "1" ]
 	then
-	echo "Errors occured during packages downloading"
+	echo "Errors occurred during packages downloading"
 	exit 1
 	fi
 
@@ -212,9 +227,9 @@ firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 echo "3 $firewall" | $rr_config # use first available option to configure firewall.
 }
 
-install_repo
-installation # we run installation process
-configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
+#install_repo
+#installation # we run installation process
+#configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 
 function details {
 IP=$(ifconfig | grep inet | head -1 | awk '{print $2}')
@@ -225,4 +240,4 @@ echo "$user::$password"
 }
 
 
-details # details are provided for further protection
+#details # details are provided for further protection
