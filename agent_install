@@ -227,9 +227,9 @@ firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 echo "3 $firewall" | $rr_config # use first available option to configure firewall.
 }
 
-#install_repo
-#installation # we run installation process
-#configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
+install_repo
+installation # we run installation process
+configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 
 function details {
 IP=$(ifconfig | grep inet | head -1 | awk '{print $2}')
@@ -240,4 +240,4 @@ echo "$user::$password"
 }
 
 
-#details # details are provided for further protection
+details # details are provided for further protection
