@@ -253,7 +253,7 @@ if [[ "$command" == "-logs" ]]; then
 fi
 
 
-function 
+#function 
 
 
 install_repo
