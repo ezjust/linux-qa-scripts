@@ -223,9 +223,9 @@ lvm_partitions_create
 
 function mkfs_lvm {
 
-mkfs.ext4 -f /dev/linear_ext4/linear_ext4
-mkfs.ext4 -f /dev/striped_ext4/striped_ext4
-mkfs.ext4 -f /dev/mirrored_ext4/mirrored_ext4
+mkfs.ext4 -F /dev/linear_ext4/linear_ext4
+mkfs.ext4 -F /dev/striped_ext4/striped_ext4
+mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
 
 mkfs.xfs -f /dev/linear_xfs/linear_xfs
 mkfs.xfs -f /dev/striped_xfs/striped_xfs
@@ -233,16 +233,18 @@ mkfs.xfs -f /dev/mirrored_xfs/mirrored_xfs
 
 }
 
+mkfs_lvm
+
 function mkfs_primary_first_disk {
 
 declare -A disk=();
 	disk[1]="$disk1"
-	mkfs.ext3 -f "${disk[1]}1"
+	mkfs.ext3 -F "${disk[1]}1"
 	mkdir /mnt/"${disk[1]}1"_ext3
 	mount "${disk[1]}1" /mnt/"${disk[1]}1"_ext3 
 
 
-	mkfs.ext4 -f "${disk[1]}2"
+	mkfs.ext4 -F "${disk[1]}2"
 	mkdir /mnt/"${disk[1]}2"_ext4
 	mount "${disk[1]}2" /mnt/"${disk[1]}2"_ext4
 
@@ -252,7 +254,7 @@ declare -A disk=();
 	mount "${disk[1]}3" /mnt/"${disk[1]}3"_xfs
 
 
-	mkfs.ext2 -f "${disk[1]}5"
+	mkfs.ext2 -F "${disk[1]}5"
 	mkdir /mnt/"${disk[1]}5"_ext2
 	mount "${disk[1]}5" /mnt/"${disk[1]}5"_ext2
 
@@ -262,12 +264,12 @@ declare -A disk=();
 	mount "${disk[1]}6" /mnt/"${disk[1]}6"_btrfs
 
 
-	mkfs.ext4 -b 2048 -f "${disk[1]}7"
+	mkfs.ext4 -b 2048 -F "${disk[1]}7"
 	mkdir /mnt/"${disk[1]}1"_ext4_unaligned
 	mount "${disk[1]}7" /mnt/"${disk[1]}1"_ext4_unaligned
 }
 
-
+mkfs_primary_first_disk
 
 
 function raid_partition {
@@ -309,7 +311,7 @@ function raid_partition {
 
 
 }
-
+raid_partition
 
 : '
 Partition table  should have the following view:
