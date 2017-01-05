@@ -14,7 +14,7 @@ This script is used by the Linux QA Team to run everyday tasks.
 		agent_install -logs
 		agent_install -clean
 		agent_install -install 7.0.0
-		agent_install --install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
+		agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
 '
 
 command=$1
@@ -251,6 +251,10 @@ if [[ "$command" == "-logs" ]]; then
 	get_logs
 	exit 0
 fi
+
+
+function 
+
 
 install_repo
 installation # we run installation process
