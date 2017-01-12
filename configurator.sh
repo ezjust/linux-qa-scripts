@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -x
+#set -x
 configuration=$1
 disks=$2
 
@@ -17,6 +17,10 @@ tput setaf 3;	echo "--clean   -   to clean up default configuration scheme for t
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line. 
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
+		echo "Please note, that this script has been tested under following OS:
+		     - Ubuntu 16.10 - passed
+		     - Oracle 7.1   - passed
+		     - Ubuntu 12.04 - failed  - lvm2 has old version"
 		echo "
 sdb->
         sdb1 - ext3
