@@ -19,6 +19,7 @@ tput setaf 3;	echo "--clean   -   to clean up default configuration scheme for t
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
 		echo "Please note, that this script has been tested under following OS:
 		     - Ubuntu 16.10 - passed
+		     - Ubuntu 16.04 - passed
 		     - Oracle 7.1   - passed
 		     - Ubuntu 12.04 - failed  - lvm2 has old version"
 		echo "

@@ -220,7 +220,7 @@ port=8006
 useradd $user
 groupadd $user
 useradd -G $user $user
-echo "1 $port" | $rr_config # configure default port for transfering
+#echo "1 $port" | $rr_config # configure default port for transfering
 echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
 echo "4 all" | $rr_config # install rapidrecovery-vss into all available system kernels
