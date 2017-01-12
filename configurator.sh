@@ -70,7 +70,7 @@ else
 	pacman="dpkg --list"
 fi
 
-if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs-progs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
+if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs-tools >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
 	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs"
 	echo ""
 	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs'
@@ -287,7 +287,10 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
 	vgcreate linear_xfs "${disk[2]}1" "${disk[3]}1"
-	lvcreate -y -Wy -Zy -l 100%VG -n linear_xfs linear_xfs
+	lvcreate -Zy -l 100%VG -n linear_xfs linear_xfs
+	
+
+	
 	linear_xfs=/dev/linear_xfs/linear_xfs
 	mkdir /mnt/linear_xfs; linear_xfs_mp=/mnt/linear_xfs
 	sleep 0.2
@@ -296,7 +299,7 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}5" "${disk[3]}5"
 	vgcreate linear_ext4 "${disk[2]}5" "${disk[3]}5"
-   	lvcreate -y -Wy -Zy -l 100%VG -n linear_ext4 linear_ext4
+	lvcreate -Zy -l 100%VG -n linear_ext4 linear_ext4
 	linear_ext4=/dev/linear_ext4/linear_ext4
 	mkdir /mnt/linear_ext4; linear_ext4_mp=/mnt/linear_ext4
 	sleep 0.2
@@ -305,7 +308,7 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}2" "${disk[3]}2"
 	vgcreate striped_xfs "${disk[2]}2" "${disk[3]}2"
-	lvcreate -y -Wy -Zy -l 100%VG -i2 -I64 -n striped_xfs striped_xfs
+	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_xfs striped_xfs
 	striped_xfs=/dev/striped_xfs/striped_xfs
 	mkdir /mnt/striped_xfs; striped_xfs_mp=/mnt/striped_xfs
 	sleep 0.2
@@ -314,7 +317,7 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}6" "${disk[3]}6"
 	vgcreate striped_ext4 "${disk[2]}6" "${disk[3]}6"
-	lvcreate -y -Wy -Zy -l 100%VG -i2 -I64 -n striped_ext4 striped_ext4
+	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_ext4 striped_ext4
 	striped_ext4=/dev/striped_ext4/striped_ext4
 	mkdir /mnt/striped_ext4; striped_ext4_mp=/mnt/striped_ext4
 	sleep 0.2
@@ -323,8 +326,12 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}3" "${disk[3]}3"
 	vgcreate mirrored_xfs "${disk[2]}3" "${disk[3]}3"
-	lvcreate -y -Wy -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs
-	mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
+	lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs
+	mirrored_xfs_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs >> /dev/null 2>&1; echo $?)
+        if [[ "$mirrored_xfs_exit_code" -eq "5" ]]; then
+                lvcreate -Zy -l 49%VG -n mirrored_xfs mirrored_xfs
+        fi
+        mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
 	mkdir /mnt/mirrored_xfs; mirrored_xfs_mp=/mnt/mirrored_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/mirrored_xfs/mirrored_xfs
@@ -332,7 +339,11 @@ function lvm_partitions_create {
 
 	pvcreate  "${disk[2]}7" "${disk[3]}7"
 	vgcreate mirrored_ext4 "${disk[2]}7" "${disk[3]}7"
-	lvcreate -y -Wy -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4
+	lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4
+	mirrored_ext4_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4 >> /dev/null 2>&1; echo $?)
+        if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
+                lvcreate -Zy -l 49%VG -n mirrored_ext4 mirrored_ext4
+        fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
 	sleep 0.2
