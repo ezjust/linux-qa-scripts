@@ -136,6 +136,9 @@ list="rpm -qa"
 install="rpm -i"
 os=rhel
 version=$(cat /etc/os-release | grep -w VERSION_ID= | awk -F '["/.]' '{print $2}')
+if [ -z $version ]; then
+        version=$(cat /etc/centos-release | awk '{print$3}'| awk -F '["/.]' '{print $1}')
+fi
 arch=$(arch)
 package="rpm"
 fi
