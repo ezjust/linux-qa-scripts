@@ -20,12 +20,12 @@ This script is used by the Linux QA Team to run everyday tasks.
 command=$1
 build=$2
 if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && "$command" != "-logs" && -z "$build" ]]; then
-	sed -n 4,17p agent_install
+	sed -n '4,17p' agent_install.sh
 	exit 1
 fi
 
 if [[ "$command" == "-h" ]]; then
-	sed -n 4,17p agent_install
+	sed -n '4,17p' agent_install.sh
 	exit 0
 fi
 
