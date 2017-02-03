@@ -44,7 +44,7 @@ package="dpkg"
 installed="dpkg -l"
 fi
 
-if [ -f /etc/redhat-release ]
+if [ -f /etc/redhat-release ] || [ -f /etc/centos-release ]
 then
 operator="yum"
 package="rpm"
@@ -126,6 +126,9 @@ os="debian"
 	fi
 
 arch=$(arch)
+if [ "$arch" == "i686" ]; then
+	arch="x86_32"
+fi
 package="deb"
 fi
 
@@ -140,6 +143,9 @@ if [ -z $version ]; then
         version=$(cat /etc/centos-release | awk '{print$3}'| awk -F '["/.]' '{print $1}')
 fi
 arch=$(arch)
+if [ "$arch" == "i686" ]; then
+        arch="x86_32"
+fi
 package="rpm"
 fi
 
@@ -151,6 +157,9 @@ install="rpm -i"
 os=sles
 version=$(cat /etc/SuSE-release | grep VERSION | awk '{print $3}')
 arch=$(arch)
+if [ "$arch" == "i686" ]; then
+        arch="x86_32"
+fi
 package="rpm"
 fi
 
