@@ -201,8 +201,8 @@ fi
 function installation {
 if [ $operator = "zypper" ]
 then
-$operator clean
-$operator install -y $package_name
+$operator clean --all
+$operator --no-qpq-check install -y $package_name
 	if [ "$?" -eq "1" ]
 	then
 	echo "Errors occurred during packages downloading"
@@ -224,6 +224,14 @@ fi
 $list | grep 'rapid\|nbd\|dkms'
 
 }
+
+
+
+function update {
+}
+
+
+
 
 function configuration {
 user=rr
