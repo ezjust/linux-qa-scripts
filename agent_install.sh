@@ -228,6 +228,7 @@ $list | grep 'rapid\|nbd\|dkms'
 
 
 function update {
+echo "update"
 }
 
 
