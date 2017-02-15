@@ -202,26 +202,36 @@ function installation {
 if [ $operator = "zypper" ]
 then
 $operator clean --all
-$operator --no-qpq-check install -y $package_name
-	if [ "$?" -eq "1" ]
-	then
-	echo "Errors occurred during packages downloading"
-	exit 1
-	fi 
-
+        if [ "$version" -lt "12" ]
+        then
+        $operator install -y $package_name
+                if [ "$?" -eq "1" ]
+                then
+                echo "Errors occurred during packages downloading"
+                exit 1
+                fi
+        else
+        $operator --no-qpq-check install -y $package_name
+                if [ "$?" -eq "1" ]
+                then
+                echo "Errors occurred during packages downloading"
+                exit 1
+                fi
+        fi
 else
-	$operator clean all
-	echo "n" | $operator update >> /dev/null
-	$operator install "-y" $package_name
-
-	if [ "$?" -eq "1" ]
-	then
-	echo "Errors occurred during packages downloading"
-	exit 1
-	fi
+        $operator clean all
+        echo "n" | $operator update >> /dev/null
+        $operator install "-y" $package_name
+        if [ "$?" -eq "1" ]
+        then
+        echo "Errors occurred during packages downloading"
+        exit 1
+        fi
 
 fi
 $list | grep 'rapid\|nbd\|dkms'
+
+
 
 }
 
