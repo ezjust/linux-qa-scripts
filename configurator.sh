@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#set -x
+set -x
 configuration=$1
 disks=$2
 
@@ -154,12 +154,17 @@ rm -rf /mnt/md0-mirror
 
 
 
-
+wipefs -a /dev/linear_xfs/linear_xfs
 lvremove -f /dev/linear_xfs/linear_xfs
+wipefs -a /dev/linear_ext4/linear_ext4
 lvremove -f /dev/linear_ext4/linear_ext4
+wipefs -a /dev/striped_xfs/striped_xfs
 lvremove -f /dev/striped_xfs/striped_xfs
+wipefs -a /dev/striped_ext4/striped_ext4
 lvremove -f /dev/striped_ext4/striped_ext4
+wipefs -a /dev/mirrored_xfs/mirrored_xfs
 lvremove -f /dev/mirrored_xfs/mirrored_xfs
+wipefs -a /dev/mirrored_ext4/mirrored_ext4
 lvremove -f /dev/mirrored_ext4/mirrored_ext4
                 
 vgremove -f linear_xfs
@@ -190,7 +195,9 @@ wipefs -a "$disk4"3
 wipefs -a "$disk5"3
 
 
+
 sed -i.bak '/linear\|stripe\|mirror/d' /etc/mdadm/mdadm.conf
+sed -i.bak '/linear\|stripe\|mirror/d' /etc/mdadm.conf
 partprobe
 
 	for i in {1..8}
@@ -198,18 +205,23 @@ partprobe
 		
 		(echo d; echo $i; echo w;) | fdisk $disk1 >> /dev/null 2>&1
                 sleep 0.2
+		wipefs -a $disk1$i
                 #umount $disk2$i
                 (echo d; echo $i; echo w;) | fdisk $disk2 >> /dev/null 2>&1
                 sleep 0.2
+		wipefs -a $disk2$i
 		#umount $disk3$i
 	        (echo d; echo $i; echo w;) | fdisk $disk3 >> /dev/null 2>&1
         	sleep 0.2
+		wipefs -a $disk3$i
 		#umount $disk4$i
 		(echo d; echo $i; echo w;) | fdisk $disk4 >> /dev/null 2>&1
 	        sleep 0.2
+		wipefs -a $disk4$i
 		#umount $disk5$i
 		(echo d; echo $i; echo w;) | fdisk $disk5 >> /dev/null 2>&1
         	sleep 0.2
+		wipefs -a $disk5$i
 	done
 
 sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear\|-stripe\|-mirror/d' /etc/fstab
@@ -288,9 +300,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
 	vgcreate linear_xfs "${disk[2]}1" "${disk[3]}1"
 	lvcreate -Zy -l 100%VG -n linear_xfs linear_xfs
-	
-
-	
+	wipefs -a /dev/linear_xfs/linear_xfs
 	linear_xfs=/dev/linear_xfs/linear_xfs
 	mkdir /mnt/linear_xfs; linear_xfs_mp=/mnt/linear_xfs
 	sleep 0.2
@@ -300,6 +310,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}5" "${disk[3]}5"
 	vgcreate linear_ext4 "${disk[2]}5" "${disk[3]}5"
 	lvcreate -Zy -l 100%VG -n linear_ext4 linear_ext4
+	wipefs -a /dev/linear_ext4/linear_ext4
 	linear_ext4=/dev/linear_ext4/linear_ext4
 	mkdir /mnt/linear_ext4; linear_ext4_mp=/mnt/linear_ext4
 	sleep 0.2
@@ -310,6 +321,7 @@ function lvm_partitions_create {
 	vgcreate striped_xfs "${disk[2]}2" "${disk[3]}2"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_xfs striped_xfs
 	striped_xfs=/dev/striped_xfs/striped_xfs
+	wipefs -a "$striped_xfs"
 	mkdir /mnt/striped_xfs; striped_xfs_mp=/mnt/striped_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/striped_xfs/striped_xfs
@@ -319,6 +331,7 @@ function lvm_partitions_create {
 	vgcreate striped_ext4 "${disk[2]}6" "${disk[3]}6"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_ext4 striped_ext4
 	striped_ext4=/dev/striped_ext4/striped_ext4
+	wipefs -a "$striped_ext4"
 	mkdir /mnt/striped_ext4; striped_ext4_mp=/mnt/striped_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/striped_ext4/striped_ext4
@@ -332,6 +345,7 @@ function lvm_partitions_create {
                 lvcreate -Zy -l 49%VG -n mirrored_xfs mirrored_xfs
         fi
         mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
+	wipefs -a "$mirrored_xfs"
 	mkdir /mnt/mirrored_xfs; mirrored_xfs_mp=/mnt/mirrored_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/mirrored_xfs/mirrored_xfs
@@ -345,6 +359,7 @@ function lvm_partitions_create {
                 lvcreate -Zy -l 49%VG -n mirrored_ext4 mirrored_ext4
         fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
+	wiprefs -a "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
@@ -407,11 +422,8 @@ for m in 4 5
 do
 	for i in {1..3}
 	do 
-		#echo "${disk_partition_sectors[$m]}"
+		echo "${disk_partition_sectors[$m]}"
 		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}"; echo w) | fdisk ${disk[$m]} #>> /dev/null 2>&1
-		sync
-		sync
-		partprobe
 		sleep 0.5
 	
 	done
@@ -433,19 +445,39 @@ wipefs -a "$disk4"2
 wipefs -a "$disk5"2
 wipefs -a "$disk4"3
 wipefs -a "$disk5"3
-mdadm --create /dev/md/md0-linear --level=linear --raid-devices=2 "$disk4"1 "$disk5"1
-mdadm --assemble /dev/md/md0-linear
+mdadm --zero-superblock "$disk4"1 "$disk5"1
+mdadm --zero-superblock "$disk4"2 "$disk5"2
+mdadm --zero-superblock "$disk4"3 "$disk5"3
+mdadm --create --verbose /dev/md/md0-linear --level=linear --raid-devices=2 "$disk4"1 "$disk5"1
+if [ -b /dev/md/md0-linear ]; then
+	mdadm --assemble --verbose /dev/md/md0-linear "$disk4"1 "$disk5"1
+	mkdir /mnt/md0-linear
+else
+	echo /dev/md/md0-linear was not created. Skipped assemble of this device.
+fi
+
 partprobe
 mdadm --create /dev/md/md0-stripe --level=stripe --raid-devices=2 "$disk4"2 "$disk5"2
-mdadm --assemble /dev/md/md0-stripe 
+
+if [ -b /dev/md/md0-stripe ]; then
+	mdadm --assemble --verbose /dev/md/md0-stripe "$disk4"2 "$disk5"2
+	mkdir /mnt/md0-stripe
+else
+	echo /dev/md/md0-stripe was not created. Skipped assemble of this device
+fi
+
 partprobe
 yes | mdadm --create /dev/md/md0-mirror --level=mirror --raid-devices=2 "$disk4"3 "$disk5"3
-mdadm --assemble /dev/md/md0-mirror
+
+if [ -b /dev/md/md0-mirror ]; then
+	mdadm --assemble /dev/md/md0-mirror "$disk4"3 "$disk5"3
+	mkdir /mnt/md0-mirror
+else
+	echo /dev/md/md0-mirror was not created. Skipped assemble of this device	
+fi
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
-mkdir /mnt/md0-linear
-mkdir /mnt/md0-stripe
-mkdir /mnt/md0-mirror
+
 mkfs.ext4 -F /dev/md/md0-linear
 mkfs.ext4 -F /dev/md/md0-stripe
 mkfs.ext4 -F /dev/md/md0-mirror
