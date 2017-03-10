@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -x
+#set -x
 configuration=$1
 disks=$2
 
@@ -145,13 +145,14 @@ rm -rf /mnt/mirrored_xfs
 umount /mnt/mirrored_ext4
 rm -rf /mnt/mirrored_ext4
 
-umount /mnt/md0-linear
-rm -rf /mnt/md0-linear
-umount /mnt/md0-stripe
-rm -rf /mnt/md0-stripe
-umount /mnt/md0-mirror
-rm -rf /mnt/md0-mirror
-
+umount /mnt/md0-linear_0
+rm -rf /mnt/md0-linear_0
+umount /mnt/md0-stripe_0
+rm -rf /mnt/md0-stripe_0
+umount /mnt/md0-mirror_0
+rm -rf /mnt/md0-mirror_0
+umount /mnt/md5-partition-ext4
+rm -rf /mnt/md5-partition-ext4
 
 
 wipefs -a /dev/linear_xfs/linear_xfs
@@ -175,29 +176,36 @@ vgremove -f mirrored_xfs
 vgremove -f mirrored_ext4
 
 
-mdadm --stop /dev/md/md0-linear
-mdadm --remove /dev/md/md0-linear
+mdadm --stop /dev/md/md0-linear_0
 mdadm --zero-superblock "$disk4"1 "$disk5"1
 wipefs -a "$disk4"1
 wipefs -a "$disk5"1
+mdadm --remove /dev/md/md0-linear_0
 
-mdadm --stop /dev/md/md0-stripe
-mdadm --remove /dev/md/md0-stripe
+
+
+mdadm --stop /dev/md/md0-stripe_0
 mdadm --zero-superblock "$disk4"2 "$disk5"2
 wipefs -a "$disk4"2
 wipefs -a "$disk5"2
+mdadm --remove /dev/md/md0-stripe_0
 
 
-mdadm --stop /dev/md/md0-mirror
-mdadm --remove /dev/md/md0-mirror
+mdadm --stop /dev/md/md0-mirror_0
 mdadm --zero-superblock "$disk4"3 "$disk5"3
 wipefs -a "$disk4"3
 wipefs -a "$disk5"3
+mdadm --remove /dev/md/md0-mirror_0
 
+(echo d; echo w;) | fdisk /dev/md/md5
+mdadm --stop /dev/md/md5
+mdadm --zero-superblock "$disk4"5 "$disk5"5
+wipefs -a "$disk4"5
+wipefs -a "$disk5"5
+mdadm --remove /dev/md/md5
 
-
-sed -i.bak '/linear\|stripe\|mirror/d' /etc/mdadm/mdadm.conf
-sed -i.bak '/linear\|stripe\|mirror/d' /etc/mdadm.conf
+sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf
+sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm.conf
 partprobe
 
 	for i in {1..8}
@@ -224,7 +232,7 @@ partprobe
 		wipefs -a $disk5$i
 	done
 
-sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear\|-stripe\|-mirror/d' /etc/fstab
+sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|part_0/d' /etc/fstab
 
 
 
@@ -445,46 +453,66 @@ wipefs -a "$disk4"2
 wipefs -a "$disk5"2
 wipefs -a "$disk4"3
 wipefs -a "$disk5"3
+wipefs -a "$disk4"5
+wipefs -a "$disk5"5
+
 mdadm --zero-superblock "$disk4"1 "$disk5"1
 mdadm --zero-superblock "$disk4"2 "$disk5"2
 mdadm --zero-superblock "$disk4"3 "$disk5"3
-mdadm --create --verbose /dev/md/md0-linear --level=linear --raid-devices=2 "$disk4"1 "$disk5"1
-if [ -b /dev/md/md0-linear ]; then
-	mdadm --assemble --verbose /dev/md/md0-linear "$disk4"1 "$disk5"1
-	mkdir /mnt/md0-linear
+mdadm --zero-superblock "$disk4"5 "$disk5"5
+
+mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 "$disk4"1 "$disk5"1
+if [ -b /dev/md/md0-linear_0 ]; then
+	mdadm --assemble --verbose /dev/md/md0-linear_0 "$disk4"1 "$disk5"1
+	mkdir /mnt/md0-linear_0
 else
-	echo /dev/md/md0-linear was not created. Skipped assemble of this device.
+	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
 fi
 
 partprobe
-mdadm --create /dev/md/md0-stripe --level=stripe --raid-devices=2 "$disk4"2 "$disk5"2
+mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 "$disk4"2 "$disk5"2
 
-if [ -b /dev/md/md0-stripe ]; then
-	mdadm --assemble --verbose /dev/md/md0-stripe "$disk4"2 "$disk5"2
-	mkdir /mnt/md0-stripe
+if [ -b /dev/md/md0-stripe_0 ]; then
+	mdadm --assemble --verbose /dev/md/md0-stripe_0 "$disk4"2 "$disk5"2
+	mkdir /mnt/md0-stripe_0
 else
-	echo /dev/md/md0-stripe was not created. Skipped assemble of this device
+	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
 fi
 
 partprobe
-yes | mdadm --create /dev/md/md0-mirror --level=mirror --raid-devices=2 "$disk4"3 "$disk5"3
+yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 "$disk4"3 "$disk5"3
 
-if [ -b /dev/md/md0-mirror ]; then
-	mdadm --assemble /dev/md/md0-mirror "$disk4"3 "$disk5"3
-	mkdir /mnt/md0-mirror
+if [ -b /dev/md/md0-mirror_0 ]; then
+	mdadm --assemble /dev/md/md0-mirror_0 "$disk4"3 "$disk5"3
+	mkdir /mnt/md0-mirror_0
 else
-	echo /dev/md/md0-mirror was not created. Skipped assemble of this device	
+	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device	
 fi
+
+
+yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 "$disk4"5 "$disk5"5
+if [ -b /dev/md/md5 ]; then
+        (echo n; echo ; echo ; echo ; echo ; echo w) | fdisk /dev/md/md5
+	mkdir /mnt/md5-partition-ext4
+else
+        echo /dev/md/md0-part_0 was not created. Skipped assemble of this device.
+fi
+
+
+
+
+
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
-mkfs.ext4 -F /dev/md/md0-linear
-mkfs.ext4 -F /dev/md/md0-stripe
-mkfs.ext4 -F /dev/md/md0-mirror
-mount /dev/md/md0-linear /mnt/md0-linear
-mount /dev/md/md0-stripe /mnt/md0-stripe
-mount /dev/md/md0-mirror /mnt/md0-mirror
-
+mkfs.ext4 -F /dev/md/md0-linear_0
+mkfs.ext4 -F /dev/md/md0-stripe_0
+mkfs.ext4 -F /dev/md/md0-mirror_0
+mkfs.ext4 -F /dev/md/md5p1
+mount /dev/md/md0-linear_0 /mnt/md0-linear_0
+mount /dev/md/md0-stripe_0 /mnt/md0-stripe_0
+mount /dev/md/md0-mirror_0 /mnt/md0-mirror_0
+mount /dev/md/md5p1 /mnt/md5-partition-ext4
 
 }
 raid_partition
@@ -496,7 +524,7 @@ function fstab {
 
 IFS=$'\n'
 set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear\|-stripe\|-mirror' | awk '{print $1,$2,$3}'))
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|partition-ext4' | awk '{print $1,$2,$3}'))
 for ((i = 1; i < ${#fstab[@]}; i++)); do 
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
