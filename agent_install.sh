@@ -64,7 +64,7 @@ echo $operator
 systemctl stop repidrecovery-agent 1>&2 2>/dev/null
 rmmod rapidrecovery-vss 1>&2 2>/dev/null
 
-if [ $operator="zypper" ]
+if [ "$operator" = "zypper" ]
 then
 	$operator remove -y rapidrecovery-agent
 	$operator remove -y rapidrecovery-mono
