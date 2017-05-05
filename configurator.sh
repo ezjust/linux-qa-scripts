@@ -23,42 +23,6 @@ That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have p
 		     - Oracle 7.1   - passed
 		     - Ubuntu 12.04 - failed  - lvm2 has old version"
 		echo "
-sdb->
-        sdb1 - ext3
-        sdb2 - ext4
-        sdb3 - xfs
-        sdb4 - extended
-                sdb5 - ext2
-                sdb6 - btrfs
-                sdb7 - ext4 - block.size is 2K
-sdc
-        - lvm group -   lvm - ext2
-sdd                     lvm - ext3
-                        lvm - ext4
-                        lvm - xfs
-                        lvm - btrfs
-sde
-        sde1 - raid-linear
-        sde2 - raid0
-        sde3 - raid1
-        sde4 - extended
-                sde5 - unaligned 101 and 2048 BS ext3
-                sde6 - unaligned 102 and 2048 BS ext4
-                sde7 - unaligned 103 and 1024 BS xfs
-                sde8 - free
-                        sde1, sdf1 - raid-linear - ext3
-                        sde2, sdf2 - raid-0 - ext4
-                        sde3, sdf3 - raid-1 - xfs
-                        sde5, sdf5 - 
-
-sdf     sdf1 - raid-linear
-        sdf2 - raid0
-        sdf3 - raid1
-        sdf4 - extended
-                sdf5 - free
-                sdf6 - free
-                sdf7 - free
-                sdf8 - free
 
 		     "
 	exit 1
@@ -405,7 +369,7 @@ declare -A disk=();
 
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
-	mount "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
+	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 
 
 	mkfs.ext4 -b 2048 -F "${disk[1]}7"
