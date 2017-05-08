@@ -196,7 +196,7 @@ partprobe
 		wipefs -a $disk5$i
 	done
 
-sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|part_0/d' /etc/fstab
+sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|partition-ext4/d' /etc/fstab
 
 
 
@@ -489,7 +489,7 @@ function fstab {
 IFS=$'\n'
 set -o noglob
 fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|partition-ext4' | awk '{print $1,$2,$3}'))
-for ((i = 1; i < ${#fstab[@]}; i++)); do 
+for ((i = 0; i < ${#fstab[@]}; i++)); do 
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
 mount -a
