@@ -17,15 +17,18 @@ This script is used by the Linux QA Team to run everyday tasks.
 		agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
 '
 
+FILEPATH=`realpath $0`
 command=$1
 build=$2
+
+
 if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && "$command" != "-logs" && -z "$build" ]]; then
-	sed -n '4,17p' agent_install.sh
+	sed -n '4,17p' $FILEPATH
 	exit 1
 fi
 
 if [[ "$command" == "-h" ]]; then
-	sed -n '4,17p' agent_install.sh
+	sed -n '4,17p' $FILEPATH
 	exit 0
 fi
 
