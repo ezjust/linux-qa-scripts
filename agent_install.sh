@@ -17,7 +17,7 @@ This script is used by the Linux QA Team to run everyday tasks.
 		agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
 '
 
-FILEPATH=`realpath $0`
+FILEPATH=`/usr/bin/readlink -e $0`
 command=$1
 build=$2
 
