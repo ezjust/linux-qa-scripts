@@ -28,6 +28,19 @@ That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have p
 	exit 1
 fi
 
+
+function activate_disks {
+    	for i in `ls /sys/class/scsi_host/`; do
+       		exists=`grep mpt /sys/class/scsi_host/$i/proc_name`
+		if [[ ! -z $exists ]]; then
+			echo "- - -" > /sys/class/scsi_host/$i/scan
+		fi
+	done
+}
+
+activate_disks
+
+
 if [ "`rpm -? >> /dev/null 2>&1; echo $?`" == "0" ]; then
 	pacman="rpm -qa"
 else
@@ -337,7 +350,7 @@ function lvm_partitions_create {
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
 	mount $mirrored_ext4 $mirrored_ext4_mp
 
-
+    pvcreate "${disk[5]}5" "${disk[5]}6"
 }
 
 lvm_partitions_create
@@ -537,9 +550,9 @@ sdf 	sdf1 - raid-linear
 	sdf2 - raid0
 	sdf3 - raid1
 	sdf4 - extended
-		sdf5 - free
-		sdf6 - free
-		sdf7 - free
+		sdf5 - reserved for lvpool
+		sdf6 - reserved for lvpool
+		sdf7 - reserved for mirrored log
 		sdf8 - free
 
 
