@@ -257,7 +257,7 @@ function disk_primary_partitions_create {
 		for i in {1..3}
 		do 
 			#echo "${disk_partition_sectors[$m]}"
-			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.2
 		
 		done
@@ -266,7 +266,7 @@ function disk_primary_partitions_create {
 
 		for i in {5..7}
 		do
-			(echo n; echo ; echo "+"${disk_partition_sectors[$m]}; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+			(echo n; echo ; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.5
 		done
 
@@ -408,7 +408,7 @@ do
 	for i in {1..3}
 	do 
 		echo "${disk_partition_sectors[$m]}"
-		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}"; echo w) | fdisk ${disk[$m]} #>> /dev/null 2>&1
+		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} #>> /dev/null 2>&1
 		sleep 0.5
 	
 	done
@@ -417,7 +417,7 @@ do
 	do
 		sector=$(sfdisk -F ${disk[$m]} | sed -n '/Start/{n;p;}' | awk '{print $1}')
 		sector=$(($sector + 3))
-		(echo n; echo $sector; echo "+"${disk_partition_sectors[$m]}; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		(echo n; echo $sector; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 		sleep 0.5
 	done
 
