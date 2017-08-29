@@ -265,7 +265,7 @@ echo "3 $firewall" | $rr_config # use first available option to configure firewa
 
 
 function details {
-IP=$(ifconfig | grep inet | head -1 | awk '{print $2}')
+IP=$(ifconfig | grep 10.10. | awk '{print $2}')
 
 echo "$IP"
 echo "$user::$password"
@@ -291,7 +291,9 @@ fi
 
 #function 
 
-
+echo *********************************
+echo $os$version
+echo *********************************
 install_repo
 installation # we run installation process
 configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
