@@ -159,8 +159,11 @@ list="rpm -qa"
 install="rpm -i"
 os=sles
 version=$(cat /etc/SuSE-release | grep VERSION | awk '{print $3}')
+if [ -z $version ]; then
+	version=$(cat /etc/SUSE-brand | grep VERSION | awk '{print $3}')
+fi
 if [ "$version" == "13.3" ]; then
-	version="12.2"
+	version="12"
 fi
 arch=$(arch)
 if [ "$arch" == "i686" ]; then
