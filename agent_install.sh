@@ -152,13 +152,16 @@ fi
 package="rpm"
 fi
 
-if [ -f /etc/SuSE-release ]
+if [ -f /etc/SuSE-release ] || [ -f /etc/SUSE-brand ]
 then
 operator="zypper"
 list="rpm -qa"
 install="rpm -i"
 os=sles
 version=$(cat /etc/SuSE-release | grep VERSION | awk '{print $3}')
+if [ "$version" == "13.3" ]; then
+	version="12.2"
+fi
 arch=$(arch)
 if [ "$arch" == "i686" ]; then
         arch="x86_32"
