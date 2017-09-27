@@ -2,7 +2,7 @@
 #set -x
 configuration=$1
 disks=$2
-
+ext2_min_version="3.6.0"
 ignore="/dev/null 2>&1"
 
 if [[ "$configuration" != "--create" && "$configuration" != "--clean" ]]; then
@@ -374,11 +374,14 @@ declare -A disk=();
 	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 
-
-	mkfs.ext2 -F "${disk[1]}5"
-	mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-	mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-
+    kernel=`uname -r | cut c1-3`
+    if `echo $kernel'>'$ext2_min_version | bc -l` == "1"; then
+	    mkfs.ext2 -F "${disk[1]}5"
+	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
+	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
+	else:
+	    echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"
+    fi
 
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
