@@ -376,12 +376,13 @@ declare -A disk=();
 
     kernel=`uname -r | cut -c1-3`
     result=`echo $kernel'>'$ext2_min_version | bc -l`
-    if [ "$result" -eq "1" ]; then
+
+    if [ "$result" != "0" ]; then
 	    mkfs.ext2 -F "${disk[1]}5"
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-	else:
-	    echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"
+	else
+	    tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
     fi
 
 	mkfs.btrfs -f "${disk[1]}6"
