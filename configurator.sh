@@ -353,7 +353,7 @@ function lvm_partitions_create {
                 lvcreate -Zy -l 49%VG -n mirrored_ext4 mirrored_ext4
         fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
-	wiprefs -a "$mirrored_ext4"
+	wipefs -a "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
