@@ -121,6 +121,8 @@ umount /mnt/mirrored_xfs
 rm -rf /mnt/mirrored_xfs
 umount /mnt/mirrored_ext4
 rm -rf /mnt/mirrored_ext4
+umount /mnt/mirror_separate
+rm -rf /mnt/mirror_separate
 
 umount /mnt/md0-linear_0
 rm -rf /mnt/md0-linear_0
@@ -144,6 +146,8 @@ wipefs -a /dev/mirrored_xfs/mirrored_xfs
 lvremove -f /dev/mirrored_xfs/mirrored_xfs
 wipefs -a /dev/mirrored_ext4/mirrored_ext4
 lvremove -f /dev/mirrored_ext4/mirrored_ext4
+wipefs -a /dev/mirror_separate/mirror_separate
+lvremove -f /dev/mirror_separate/mirror_separate
                 
 vgremove -f linear_xfs
 vgremove -f linear_ext4
@@ -151,6 +155,7 @@ vgremove -f striped_xfs
 vgremove -f striped_ext4
 vgremove -f mirrored_xfs
 vgremove -f mirrored_ext4
+vgremove -f mirror_separate
 
 
 mdadm --stop /dev/md/md0-linear_0
@@ -209,7 +214,7 @@ partprobe
 		wipefs -a $disk5$i
 	done
 
-sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|partition-ext4/d' /etc/fstab
+sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4/d' /etc/fstab
 
 
 
@@ -350,7 +355,15 @@ function lvm_partitions_create {
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
 	mount $mirrored_ext4 $mirrored_ext4_mp
 
-    pvcreate "${disk[5]}5" "${disk[5]}6"
+    	pvcreate "${disk[5]}5" "${disk[5]}6"
+	
+	vgcreate mirror_separate "${disk[1]}8" "${disk[4]}7" "${disk[5]}7"
+	lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate
+	wipefs -a /dev/mirror_separate/mirror_separate
+	mkdir /mnt/mirror_separate
+	sleep 0.2
+	mkfs.ext4 -F /dev/mirror_separate/mirror_separate
+	mount /dev/mirror_separate/mirror_separate /mnt/mirror_separate
 }
 
 lvm_partitions_create
@@ -504,7 +517,7 @@ function fstab {
 
 IFS=$'\n'
 set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|partition-ext4' | awk '{print $1,$2,$3}'))
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4' | awk '{print $1,$2,$3}'))
 for ((i = 0; i < ${#fstab[@]}; i++)); do 
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
