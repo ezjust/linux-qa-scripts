@@ -48,9 +48,9 @@ else
 fi
 
 if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
-	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs"
+	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc"
 	echo ""
-	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs'
+	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc'
 	exit 1
 fi
 
@@ -370,9 +370,6 @@ function lvm_partitions_create {
 	mount /dev/mirror_separate/mirror_separate /mnt/mirror_separate
 }
 
-lvm_partitions_create
-
-
 function mkfs_primary_first_disk {
 
 declare -A disk=();
@@ -512,8 +509,9 @@ mount /dev/md/md0-mirror_0 /mnt/md0-mirror_0
 mount /dev/md/md5p1 /mnt/md5-partition-ext4
 
 }
-raid_partition
 
+raid_partition
+lvm_partitions_create
 
 
 
