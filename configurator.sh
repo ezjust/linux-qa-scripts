@@ -284,8 +284,12 @@ disk_primary_partitions_create
 
 function lvm_partitions_create {
 	declare -A disk=();
+        disk[1]="$disk1"
 	disk[2]="$disk2"
 	disk[3]="$disk3"
+	disk[4]="$disk4"
+        disk[5]="$disk5"
+
 
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
 	vgcreate linear_xfs "${disk[2]}1" "${disk[3]}1"
