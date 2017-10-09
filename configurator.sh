@@ -60,7 +60,7 @@ fi
 
 if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]}" || -z "${disks[4]}" ]] && [[ "$configuration" == "--create" ]]; then
         echo "You have not specified all 5 needed disks for default partition creation. You have the following disks:"
-	echo "${disks[0]}"
+	    echo "${disks[0]}"
         echo "${disks[1]}"
         echo "${disks[2]}"
         echo "${disks[3]}"
@@ -68,46 +68,61 @@ if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]
         exit 1
 fi
 
-disk1="${disks[0]}" >> $ignore
-disk1_size=$(fdisk -l "$disk1" | grep Disk | awk '{print $5}') >> $ignore
-disk1_=$(echo $disk1 | cut -d"/" -f3)
-disk1_sectors=$(cat /sys/block/$disk1_/size)  >> $ignore
-disk1_partition_sectors="$(($disk1_sectors/7))" >> $ignore
-disk2=${disks[1]} >> $ignore
-disk2_size=$(fdisk -l $disk2 | grep Disk | awk '{print $5}') >> $ignore
-disk2_=$(echo $disk2 | cut -d"/" -f3)
-disk2_sectors=$(cat /sys/block/$disk2_/size)  >> $ignore
-disk2_partition_sectors=$(($disk2_sectors/7)) >> $ignore
-disk3=${disks[2]} >> $ignore
-disk3_size=$(fdisk -l $disk3 | grep Disk | awk '{print $5}') >> $ignore
-disk3_=$(echo $disk3 | cut -d"/" -f3)
-disk3_sectors=$(cat /sys/block/$disk3_/size)  >> $ignore
-disk3_partition_sectors=$(($disk3_sectors/7)) >> $ignore
-disk4=${disks[3]} >> $ignore
-disk4_size=$(fdisk -l $disk4 | grep Disk | awk '{print $5}') >> $ignore
-disk4_=$(echo $disk4 | cut -d"/" -f3)
-disk4_sectors=$(cat /sys/block/$disk4_/size)  >> $ignore
-disk4_partition_sectors=$(($disk4_sectors/7)) >> $ignore
-disk5=${disks[4]} >> $ignore
-disk5_size=$(fdisk -l $disk5 | grep Disk | awk '{print $5}') >> $ignore
-disk5_=$(echo $disk5 | cut -d"/" -f3)
-disk5_sectors=$(cat /sys/block/$disk5_/size)  >> $ignore
-disk5_partition_sectors=$(($disk5_sectors/7)) >> $ignore
+#disk1="${disks[0]}" >> $ignore
+#disk1_size=$(fdisk -l "$disk1" | grep Disk | awk '{print $5}') >> $ignore
+#disk1_=$(echo $disk1 | cut -d"/" -f3)
+#disk1_sectors=$(cat /sys/block/$disk1_/size)  >> $ignore
+#disk1_partition_sectors="$(($disk1_sectors/7))" >> $ignore
+#disk2=${disks[1]} >> $ignore
+#disk2_size=$(fdisk -l $disk2 | grep Disk | awk '{print $5}') >> $ignore
+#disk2_=$(echo $disk2 | cut -d"/" -f3)
+#disk2_sectors=$(cat /sys/block/$disk2_/size)  >> $ignore
+#disk2_partition_sectors=$(($disk2_sectors/7)) >> $ignore
+#disk3=${disks[2]} >> $ignore
+#disk3_size=$(fdisk -l $disk3 | grep Disk | awk '{print $5}') >> $ignore
+#disk3_=$(echo $disk3 | cut -d"/" -f3)
+#disk3_sectors=$(cat /sys/block/$disk3_/size)  >> $ignore
+#disk3_partition_sectors=$(($disk3_sectors/7)) >> $ignore
+#disk4=${disks[3]} >> $ignore
+#disk4_size=$(fdisk -l $disk4 | grep Disk | awk '{print $5}') >> $ignore
+#disk4_=$(echo $disk4 | cut -d"/" -f3)
+#disk4_sectors=$(cat /sys/block/$disk4_/size)  >> $ignore
+#disk4_partition_sectors=$(($disk4_sectors/7)) >> $ignore
+#disk5=${disks[4]} >> $ignore
+#disk5_size=$(fdisk -l $disk5 | grep Disk | awk '{print $5}') >> $ignore
+#disk5_=$(echo $disk5 | cut -d"/" -f3)
+#disk5_sectors=$(cat /sys/block/$disk5_/size)  >> $ignore
+#disk5_partition_sectors=$(($disk5_sectors/7)) >> $ignore
+
+
+
+size=()
+disk_size=()
+for i in ${disks[@]}
+    do
+        disk=$(echo $i | cut -d"/" -f3)
+        capacity=`cat /sys/block/$disk/size`
+	block_size=`cat /sys/block/sdb/queue/physical_block_size`
+        disk_size+=(`cat /sys/block/$disk/size`)
+        partition_size=$(($capacity*$block_size/1024/7))
+        echo partition size is : $partition_size
+        size+=($partition_size)
+    done
 
 if [[ -n "${disks}" && "$configuration" == "--clean" ]]; then
 
-umount /mnt/$(echo "$disk1"1 | cut -d"/" -f3)_ext3
-rm -rf /mnt/$(echo "$disk1"1 | cut -d"/" -f3)_ext3
-umount /mnt/$(echo "$disk1"2 | cut -d"/" -f3)_ext4
-rm -rf /mnt/$(echo "$disk1"2 | cut -d"/" -f3)_ext4
-umount /mnt/$(echo "$disk1"3 | cut -d"/" -f3)_xfs
-rm -rf /mnt/$(echo "$disk1"3 | cut -d"/" -f3)_xfs
-umount /mnt/$(echo "$disk1"5 | cut -d"/" -f3)_ext2
-rm -rf /mnt/$(echo "$disk1"5 | cut -d"/" -f3)_ext2
-umount /mnt/$(echo "$disk1"6 | cut -d"/" -f3)_btrfs
-rm -rf /mnt/$(echo "$disk1"6 | cut -d"/" -f3)_btrfs
-umount /mnt/$(echo "$disk1"7 | cut -d"/" -f3)_ext4_unaligned
-rm -rf /mnt/$(echo "$disk1"7 | cut -d"/" -f3)_ext4_unaligned
+umount /mnt/$(echo ${disks[0]}1 | cut -d"/" -f3)_ext3
+rm -rf /mnt/$(echo ${disks[0]}1 | cut -d"/" -f3)_ext3
+umount /mnt/$(echo ${disks[0]}2 | cut -d"/" -f3)_ext4
+rm -rf /mnt/$(echo ${disks[0]}2 | cut -d"/" -f3)_ext4
+umount /mnt/$(echo ${disks[0]}3 | cut -d"/" -f3)_xfs
+rm -rf /mnt/$(echo ${disks[0]}3 | cut -d"/" -f3)_xfs
+umount /mnt/$(echo ${disks[0]}5 | cut -d"/" -f3)_ext2
+rm -rf /mnt/$(echo ${disks[0]}5 | cut -d"/" -f3)_ext2
+umount /mnt/$(echo ${disks[0]}6 | cut -d"/" -f3)_btrfs
+rm -rf /mnt/$(echo ${disks[0]}6 | cut -d"/" -f3)_btrfs
+umount /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
+rm -rf /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
 
 umount /mnt/linear_xfs
 rm -rf /mnt/linear_xfs
@@ -148,7 +163,7 @@ wipefs -a /dev/mirrored_ext4/mirrored_ext4
 lvremove -f /dev/mirrored_ext4/mirrored_ext4
 wipefs -a /dev/mirror_separate/mirror_separate
 lvremove -f /dev/mirror_separate/mirror_separate
-                
+
 vgremove -f linear_xfs
 vgremove -f linear_ext4
 vgremove -f striped_xfs
@@ -159,31 +174,31 @@ vgremove -f mirror_separate
 
 
 mdadm --stop /dev/md/md0-linear_0
-mdadm --zero-superblock "$disk4"1 "$disk5"1
-wipefs -a "$disk4"1
-wipefs -a "$disk5"1
+mdadm --zero-superblock ${disks[3]}1 ${disks[4]}1
+wipefs -a ${disks[3]}1
+wipefs -a ${disks[4]}1
 mdadm --remove /dev/md/md0-linear_0
 
 
 
 mdadm --stop /dev/md/md0-stripe_0
-mdadm --zero-superblock "$disk4"2 "$disk5"2
-wipefs -a "$disk4"2
-wipefs -a "$disk5"2
+mdadm --zero-superblock ${disks[3]}2 ${disks[4]}2
+wipefs -a ${disks[3]}2
+wipefs -a ${disks[4]}2
 mdadm --remove /dev/md/md0-stripe_0
 
 
 mdadm --stop /dev/md/md0-mirror_0
-mdadm --zero-superblock "$disk4"3 "$disk5"3
-wipefs -a "$disk4"3
-wipefs -a "$disk5"3
+mdadm --zero-superblock ${disks[3]}3 ${disks[4]}3
+wipefs -a ${disks[3]}3
+wipefs -a ${disks[4]}3
 mdadm --remove /dev/md/md0-mirror_0
 
 (echo d; echo w;) | fdisk /dev/md/md5
 mdadm --stop /dev/md/md5
-mdadm --zero-superblock "$disk4"5 "$disk5"5
-wipefs -a "$disk4"5
-wipefs -a "$disk5"5
+mdadm --zero-superblock ${disks[3]}5 ${disks[4]}5
+wipefs -a ${disks[3]}5
+wipefs -a ${disks[4]}5
 mdadm --remove /dev/md/md5
 
 sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf
@@ -191,32 +206,30 @@ sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm.conf
 partprobe
 
 	for i in {1..8}
-	do 
-		
-		(echo d; echo $i; echo w;) | fdisk $disk1 >> /dev/null 2>&1
+	do
+
+		(echo d; echo $i; echo w;) | fdisk ${disks[0]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs -a $disk1$i
+		wipefs -a ${disks[0]}$i
                 #umount $disk2$i
-                (echo d; echo $i; echo w;) | fdisk $disk2 >> /dev/null 2>&1
+                (echo d; echo $i; echo w;) | fdisk ${disks[1]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs -a $disk2$i
+		wipefs -a ${disks[1]}$i
 		#umount $disk3$i
-	        (echo d; echo $i; echo w;) | fdisk $disk3 >> /dev/null 2>&1
+	        (echo d; echo $i; echo w;) | fdisk ${disks[2]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs -a $disk3$i
+		wipefs -a ${disks[2]}$i
 		#umount $disk4$i
-		(echo d; echo $i; echo w;) | fdisk $disk4 >> /dev/null 2>&1
+		(echo d; echo $i; echo w;) | fdisk ${disks[3]} >> /dev/null 2>&1
 	        sleep 0.2
-		wipefs -a $disk4$i
+		wipefs -a ${disks[3]}$i
 		#umount $disk5$i
-		(echo d; echo $i; echo w;) | fdisk $disk5 >> /dev/null 2>&1
+		(echo d; echo $i; echo w;) | fdisk ${disks[4]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs -a $disk5$i
+		wipefs -a ${disks[4]}$i
 	done
 
 sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4/d' /etc/fstab
-
-
 
 
 partprobe >> /dev/null 2>&1
@@ -230,48 +243,53 @@ fi
 
 
 
-if [[ "$disk1_size" < "10737418240" || "$disk2_size" < "10737418240" || "$disk3_size" < "10737418240" || "$disk4_size" < "10737418240" || "$disk5_size" < "10737418240" ]]; then
+if [[ "${disk_size[0]}" < "10737418240" || "${disk_size[1]}" < "10737418240" || "${disk_size[2]}" < "10737418240" || "${disk_size[3]}" < "10737418240" || "${disk_size[4]}" < "10737418240" ]]; then
 	echo "Not all disks have needed size : 10737418240"
 	echo ""
-	echo $disk1 : $disk1_size
-	echo $disk2 : $disk2_size
-	echo $disk3 : $disk3_size
-	echo $disk4 : $disk4_size
-	echo $disk5 : $disk5_size
+	echo ${disks[0]} : ${disk_size[0]}
+	echo ${disks[1]} : ${disk_size[1]}
+	echo ${disks[2]} : ${disk_size[2]}
+	echo ${disks[3]} : ${disk_size[3]}
+	echo ${disks[4]} : ${disk_size[4]}
 	exit 1
 fi
 
 function disk_primary_partitions_create {
 	declare -A disk_partition_sectors=();
-	disk_partition_sectors[1]="$disk1_partition_sectors";
-	disk_partition_sectors[2]="$disk2_partition_sectors";
-	disk_partition_sectors[3]="$disk3_partition_sectors";
-	disk_partition_sectors[4]="$disk4_partition_sectors";
-	disk_partition_sectors[5]="$disk5_partition_sectors";
+	disk_partition_sectors[1]="${size[0]}";
+	disk_partition_sectors[2]="${size[1]}";
+	disk_partition_sectors[3]="${size[2]}";
+	disk_partition_sectors[4]="${size[3]}";
+	disk_partition_sectors[5]="${size[4]}";
 
 	declare -A disk=();
-	disk[1]="$disk1"
-	disk[2]="$disk2"
-   	disk[3]="$disk3"
-	disk[4]="$disk4"
-	disk[5]="$disk5"
-
+	disk[1]="${disks[0]}"
+	disk[2]="${disks[1]}"
+   	disk[3]="${disks[2]}"
+	disk[4]="${disks[3]}"
+	disk[5]="${disks[4]}"
+	echo "===================================="
+	echo ${disk_partition_sectors[1]}
+	echo ${disk_partition_sectors[2]}
+        echo ${disk_partition_sectors[3]}
+        echo ${disk_partition_sectors[4]}
+        echo ${disk_partition_sectors[5]}
 
 	for m in 1 2 3
 	do
 		for i in {1..3}
-		do 
-			#echo "${disk_partition_sectors[$m]}"
-			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		do
+			echo "${disk_partition_sectors[$m]}"
+			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.2
-		
+
 		done
 
 		(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 
 		for i in {5..7}
 		do
-			(echo n; echo ; echo "+"${disk_partition_sectors[$m]}; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+			(echo n; echo ; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.5
 		done
 
@@ -281,14 +299,14 @@ function disk_primary_partitions_create {
 
 
 disk_primary_partitions_create
-
+exit 0
 function lvm_partitions_create {
 	declare -A disk=();
-        disk[1]="$disk1"
-	disk[2]="$disk2"
-	disk[3]="$disk3"
-	disk[4]="$disk4"
-        disk[5]="$disk5"
+        disk[1]="${disks[0]}"
+	    disk[2]="${disks[1]}"
+	    disk[3]="${disks[2]}"
+	    disk[4]="${disks[3]}"
+        disk[5]="${disks[4]}"
 
 
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
@@ -360,7 +378,7 @@ function lvm_partitions_create {
 	mount $mirrored_ext4 $mirrored_ext4_mp
 
     	pvcreate "${disk[5]}5" "${disk[5]}6"
-	
+
 	vgcreate mirror_separate "${disk[1]}8" "${disk[4]}7" "${disk[5]}7"
 	lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate
 	wipefs -a /dev/mirror_separate/mirror_separate
@@ -373,7 +391,7 @@ function lvm_partitions_create {
 function mkfs_primary_first_disk {
 
 declare -A disk=();
-	disk[1]="$disk1"
+	disk[1]="${disks[0]}"
 	mkfs.ext3 -F "${disk[1]}1"
 	mkdir /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
 	mount "${disk[1]}1" /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
@@ -416,75 +434,69 @@ function raid_partition {
 
 
 declare -A disk_partition_sectors=();
-disk_partition_sectors[4]="$disk4_partition_sectors";
-disk_partition_sectors[5]="$disk5_partition_sectors";
+disk_partition_sectors[4]="${size[3]}";
+disk_partition_sectors[5]="${size[4]}";
 
 declare -A disk=();
-disk[4]="$disk4"
-disk[5]="$disk5"
+disk[4]="${disks[3]}"
+disk[5]="${disks[4]}"
 for m in 4 5
 do
 	for i in {1..3}
-	do 
+	do
 		echo "${disk_partition_sectors[$m]}"
-		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 		sleep 0.5
 	
 	done
 	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 	for i in {5..7}
 	do
-		(echo n; echo ; echo "+"${disk_partition_sectors[$m]}; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		(echo n; echo ; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 		sleep 0.5
 	done
 
 	(echo n; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 done
 partprobe
-wipefs -a "$disk4"1
-wipefs -a "$disk5"1
-wipefs -a "$disk4"2
-wipefs -a "$disk5"2
-wipefs -a "$disk4"3
-wipefs -a "$disk5"3
-wipefs -a "$disk4"5
-wipefs -a "$disk5"5
 
-mdadm --zero-superblock "$disk4"1 "$disk5"1
-mdadm --zero-superblock "$disk4"2 "$disk5"2
-mdadm --zero-superblock "$disk4"3 "$disk5"3
-mdadm --zero-superblock "$disk4"5 "$disk5"5
+for i in 1 2 3 5
+do
+    wipefs -a ${disks[3]}$i
+    wipefs -a ${disks[4]}$i
+    mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
+done
 
-mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 "$disk4"1 "$disk5"1
+mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 ${disks[3]}1 ${disks[4]}1
 if [ -b /dev/md/md0-linear_0 ]; then
-	mdadm --assemble --verbose /dev/md/md0-linear_0 "$disk4"1 "$disk5"1
+	mdadm --assemble --verbose /dev/md/md0-linear_0 ${disks[3]}1 ${disks[4]}1
 	mkdir /mnt/md0-linear_0
 else
 	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
 fi
 
 partprobe
-mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 "$disk4"2 "$disk5"2
+mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 ${disks[3]}2 ${disks[4]}2
 
 if [ -b /dev/md/md0-stripe_0 ]; then
-	mdadm --assemble --verbose /dev/md/md0-stripe_0 "$disk4"2 "$disk5"2
+	mdadm --assemble --verbose /dev/md/md0-stripe_0 ${disks[3]}2 ${disks[4]}2
 	mkdir /mnt/md0-stripe_0
 else
 	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
 fi
 
 partprobe
-yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 "$disk4"3 "$disk5"3
+yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 ${disks[3]}3 ${disks[4]}3
 
 if [ -b /dev/md/md0-mirror_0 ]; then
-	mdadm --assemble /dev/md/md0-mirror_0 "$disk4"3 "$disk5"3
+	mdadm --assemble /dev/md/md0-mirror_0 ${disks[3]}3 ${disks[4]}3
 	mkdir /mnt/md0-mirror_0
 else
 	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device	
 fi
 
 
-yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 "$disk4"5 "$disk5"5
+yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
 if [ -b /dev/md/md5 ]; then
         (echo n; echo ; echo ; echo ; echo ; echo w) | fdisk /dev/md/md5
 	mkdir /mnt/md5-partition-ext4
