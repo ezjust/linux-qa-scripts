@@ -299,7 +299,7 @@ function disk_primary_partitions_create {
 
 
 disk_primary_partitions_create
-exit 0
+
 function lvm_partitions_create {
 	declare -A disk=();
         disk[1]="${disks[0]}"
