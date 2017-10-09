@@ -503,9 +503,9 @@ fi
 yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
 if [ -b /dev/md/md5 ]; then
         (echo n; echo ; echo ; echo ; echo ; echo w) | fdisk /dev/md/md5
-	mkdir /mnt/md5-partition-ext4
+	mkdir /mnt/md5
 else
-        echo /dev/md/md0-part_0 was not created. Skipped assemble of this device.
+        echo /dev/md/md5 was not created. Skipped assemble of this device.
 fi
 
 
@@ -515,10 +515,10 @@ fi
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
-for array in `mdadm --detail --scan | awk {'print $2'}`
+for array in `ls -l /dev/md | grep lrw | awk {'print $9'}`
 do
-    mkfs.ext4 -F $array
-    mount $array /mnt/`echo $array | cut -d"/" -f4`
+    mkfs.ext4 -F /dev/md/$array
+    mount /dev/md/$array /mnt/$array
 done
 }
 
@@ -531,7 +531,7 @@ function fstab {
 
 IFS=$'\n'
 set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4' | awk '{print $1,$2,$3}'))
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5' | awk '{print $1,$2,$3}'))
 for ((i = 0; i < ${#fstab[@]}; i++)); do 
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
