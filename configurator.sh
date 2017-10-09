@@ -47,7 +47,7 @@ else
 	pacman="dpkg --list"
 fi
 
-if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
+if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
 	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc"
 	echo ""
 	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc'
@@ -368,7 +368,7 @@ function lvm_partitions_create {
 	lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4
 	mirrored_ext4_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4 >> /dev/null 2>&1; echo $?)
     if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
-        lvcreate -Zy -l 49%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
+        lvcreate -Zy -l 100%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
     fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
 	wipefs -a "$mirrored_ext4"
@@ -383,7 +383,7 @@ function lvm_partitions_create {
 	lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate
 	mirror_separate_exit_code=$(lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate >> /dev/null 2>&1; echo $?)
     if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
-        lvcreate --type mirror -l 49%VG -m 1 --mirrorlog core -n mirror_separate mirror_separate
+        lvcreate --type mirror -l 100%VG -m 1 --mirrorlog core -n mirror_separate mirror_separate
     fi
 	wipefs -a /dev/mirror_separate/mirror_separate
 	mkdir /mnt/mirror_separate
@@ -515,15 +515,11 @@ fi
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
-mkfs.ext4 -F /dev/md/md0-linear_0
-mkfs.ext4 -F /dev/md/md0-stripe_0
-mkfs.ext4 -F /dev/md/md0-mirror_0
-mkfs.ext4 -F /dev/md/md5p1
-mount /dev/md/md0-linear_0 /mnt/md0-linear_0
-mount /dev/md/md0-stripe_0 /mnt/md0-stripe_0
-mount /dev/md/md0-mirror_0 /mnt/md0-mirror_0
-mount /dev/md/md5p1 /mnt/md5-partition-ext4
-
+for array in `mdadm --detail --scan | awk {'print $2'}`
+do
+    mkfs.ext4 -F $array
+    mount $array /mnt/`echo $array | cut -d"/" -f4`
+done
 }
 
 raid_partition
