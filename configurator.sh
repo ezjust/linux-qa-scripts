@@ -100,10 +100,10 @@ size=()
 disk_size=()
 for i in ${disks[@]}
     do
-        disk=$(echo $i | cut -d"/" -f3)
-        capacity=`cat /sys/block/$disk/size`
-	block_size=`cat /sys/block/sdb/queue/physical_block_size`
-        disk_size+=(`cat /sys/block/$disk/size`)
+        disk_cut=$(echo $i | cut -d"/" -f3)
+        capacity=`cat /sys/block/$disk_cut/size`
+	    block_size=`cat /sys/block/sdb/queue/physical_block_size`
+        disk_size+=(`cat /sys/block/$disk_cut/size`)
         partition_size=$(($capacity*$block_size/1024/7))
         echo partition size is : $partition_size
         size+=($partition_size)
@@ -268,12 +268,12 @@ function disk_primary_partitions_create {
    	disk[3]="${disks[2]}"
 	disk[4]="${disks[3]}"
 	disk[5]="${disks[4]}"
-	echo "===================================="
-	echo ${disk_partition_sectors[1]}
-	echo ${disk_partition_sectors[2]}
-        echo ${disk_partition_sectors[3]}
-        echo ${disk_partition_sectors[4]}
-        echo ${disk_partition_sectors[5]}
+#	echo "===================================="
+#	echo ${disk_partition_sectors[1]}
+#	echo ${disk_partition_sectors[2]}
+#        echo ${disk_partition_sectors[3]}
+#        echo ${disk_partition_sectors[4]}
+#        echo ${disk_partition_sectors[5]}
 
 	for m in 1 2 3
 	do
@@ -289,7 +289,7 @@ function disk_primary_partitions_create {
 
 		for i in {5..7}
 		do
-			(echo n; echo ; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+			(echo n; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.5
 		done
 
@@ -354,7 +354,7 @@ function lvm_partitions_create {
 	lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs
 	mirrored_xfs_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs >> /dev/null 2>&1; echo $?)
         if [[ "$mirrored_xfs_exit_code" -eq "5" ]]; then
-                lvcreate -Zy -l 49%VG -n mirrored_xfs mirrored_xfs
+                lvcreate -Zy -l 100%VG -m1 --mirrorlog core -n mirrored_xfs mirrored_xfs
         fi
         mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
 	wipefs -a "$mirrored_xfs"
@@ -367,9 +367,9 @@ function lvm_partitions_create {
 	vgcreate mirrored_ext4 "${disk[2]}7" "${disk[3]}7"
 	lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4
 	mirrored_ext4_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4 >> /dev/null 2>&1; echo $?)
-        if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
-                lvcreate -Zy -l 49%VG -n mirrored_ext4 mirrored_ext4
-        fi
+    if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
+        lvcreate -Zy -l 49%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
+    fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
 	wipefs -a "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
@@ -377,10 +377,14 @@ function lvm_partitions_create {
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
 	mount $mirrored_ext4 $mirrored_ext4_mp
 
-    	pvcreate "${disk[5]}5" "${disk[5]}6"
+    pvcreate "${disk[5]}5" "${disk[5]}6"
 
 	vgcreate mirror_separate "${disk[1]}8" "${disk[4]}7" "${disk[5]}7"
 	lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate
+	mirror_separate_exit_code=$(lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate >> /dev/null 2>&1; echo $?)
+    if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
+        lvcreate --type mirror -l 49%VG -m 1 --mirrorlog core -n mirror_separate mirror_separate
+    fi
 	wipefs -a /dev/mirror_separate/mirror_separate
 	mkdir /mnt/mirror_separate
 	sleep 0.2
@@ -452,7 +456,7 @@ do
 	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 	for i in {5..7}
 	do
-		(echo n; echo ; echo "+"${disk_partition_sectors[$m]}"K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		(echo n; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 		sleep 0.5
 	done
 
