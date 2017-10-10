@@ -415,16 +415,16 @@ declare -A disk=();
 	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 
-    	kernel=`uname -r | cut -c1-3`
-    	result=`echo $kernel'>'$ext2_min_version | bc -l`
+    kernel=`uname -r | cut -c1-3`
+    result=`echo $kernel'>'$ext2_min_version | bc -l`
 
-    	if [ "$result" != "0" ]; then
+    if [ "$result" != "0" ]; then
 	    mkfs.ext2 -F "${disk[1]}5"
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	else
 	    tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
-    	fi
+    fi
 
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
@@ -439,7 +439,7 @@ declare -A disk=();
 mkfs_primary_first_disk
 
 
-raid_partition() {
+function raid_partition {
 
 
 declare -A disk_partition_sectors=();
@@ -520,12 +520,12 @@ fi
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
-echo "========================="
 data=($(ls -l /dev/md | grep ^lrw | awk '{print $9}'))
-for array in ${data[@]}; do
+for array in ${data[@]}
+do
 	if [ "$array" != "md5"]; then
-		mkfs.ext4 -F /dev/md/$array
-	        mount /dev/md/$array /mnt/$array
+        mkfs.ext4 -F /dev/md/$array
+		mount /dev/md/$array /mnt/$array
 	fi
 done
 }
