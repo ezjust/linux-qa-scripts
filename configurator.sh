@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #set -x
 configuration=$1
 disks=$2
@@ -15,7 +15,7 @@ tput setaf 2;   echo "--create  -   to create default configuration scheme for t
 tput setaf 3;	echo "--clean   -   to clean up default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configuration.sh --clean /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo ""
-		echo "Default partition is shown below. Please note, that script will use disks from the command line. 
+		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
 		echo "Please note, that this script has been tested under following OS:
 		     - Ubuntu 16.10 - passed
@@ -55,7 +55,9 @@ if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep 
 fi
 
 if [[ -n "${disks}"   ]]; then
+	IFS_OLD=$IFS
 	IFS=","; declare -a disks=($2)
+	IFS=$IFS_OLD
 fi
 
 if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]}" || -z "${disks[4]}" ]] && [[ "$configuration" == "--create" ]]; then
@@ -102,10 +104,10 @@ for i in ${disks[@]}
     do
         disk_cut=$(echo $i | cut -d"/" -f3)
         capacity=`cat /sys/block/$disk_cut/size`
-	    block_size=`cat /sys/block/sdb/queue/physical_block_size`
+	block_size=`cat /sys/block/sdb/queue/physical_block_size`
         disk_size+=(`cat /sys/block/$disk_cut/size`)
         partition_size=$(($capacity*$block_size/1024/7))
-        echo partition size is : $partition_size
+        #echo partition size is : $partition_size
         size+=($partition_size)
     done
 
@@ -145,8 +147,8 @@ umount /mnt/md0-stripe_0
 rm -rf /mnt/md0-stripe_0
 umount /mnt/md0-mirror_0
 rm -rf /mnt/md0-mirror_0
-umount /mnt/md5-partition-ext4
-rm -rf /mnt/md5-partition-ext4
+umount /mnt/md5p1
+rm -rf /mnt/md5p1
 
 
 wipefs -a /dev/linear_xfs/linear_xfs
@@ -194,12 +196,14 @@ wipefs -a ${disks[3]}3
 wipefs -a ${disks[4]}3
 mdadm --remove /dev/md/md0-mirror_0
 
-(echo d; echo w;) | fdisk /dev/md/md5
-mdadm --stop /dev/md/md5
+(echo d; echo w;) | fdisk /dev/md/md5p1
+mdadm --stop /dev/md/md5p1
 mdadm --zero-superblock ${disks[3]}5 ${disks[4]}5
 wipefs -a ${disks[3]}5
 wipefs -a ${disks[4]}5
 mdadm --remove /dev/md/md5
+(echo d; echo w;) | fdisk /dev/md/md5
+
 
 sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf
 sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm.conf
@@ -279,7 +283,7 @@ function disk_primary_partitions_create {
 	do
 		for i in {1..3}
 		do
-			echo "${disk_partition_sectors[$m]}"
+			#echo "${disk_partition_sectors[$m]}"
 			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.2
 
@@ -303,9 +307,9 @@ disk_primary_partitions_create
 function lvm_partitions_create {
 	declare -A disk=();
         disk[1]="${disks[0]}"
-	    disk[2]="${disks[1]}"
-	    disk[3]="${disks[2]}"
-	    disk[4]="${disks[3]}"
+	disk[2]="${disks[1]}"
+	disk[3]="${disks[2]}"
+	disk[4]="${disks[3]}"
         disk[5]="${disks[4]}"
 
 
@@ -354,7 +358,7 @@ function lvm_partitions_create {
 	lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs
 	mirrored_xfs_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_xfs mirrored_xfs >> /dev/null 2>&1; echo $?)
         if [[ "$mirrored_xfs_exit_code" -eq "5" ]]; then
-                lvcreate -Zy -l 100%VG -m1 --mirrorlog core -n mirrored_xfs mirrored_xfs
+                lvcreate -Zy -l 50%VG -m1 --mirrorlog core -n mirrored_xfs mirrored_xfs
         fi
         mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
 	wipefs -a "$mirrored_xfs"
@@ -367,9 +371,9 @@ function lvm_partitions_create {
 	vgcreate mirrored_ext4 "${disk[2]}7" "${disk[3]}7"
 	lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4
 	mirrored_ext4_exit_code=$(lvcreate -Zy -l 100%VG -m1 -n mirrored_ext4 mirrored_ext4 >> /dev/null 2>&1; echo $?)
-    if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
-        lvcreate -Zy -l 100%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
-    fi
+    	if [[ "$mirrored_ext4_exit_code" -eq "5" ]]; then
+	        lvcreate -Zy -l 50%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
+	fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
 	wipefs -a "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
@@ -377,19 +381,20 @@ function lvm_partitions_create {
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
 	mount $mirrored_ext4 $mirrored_ext4_mp
 
-    pvcreate "${disk[5]}5" "${disk[5]}6"
-
+	#pvcreate "${disk[5]}5" "${disk[5]}6"
+	echo "=================================================================="
 	vgcreate mirror_separate "${disk[1]}8" "${disk[4]}7" "${disk[5]}7"
-	lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate
+	lvcreate --type mirror -l 100%VG -m 1 -n mirror_separate mirror_separate
 	mirror_separate_exit_code=$(lvcreate --type mirror -l 49%VG -m 1 -n mirror_separate mirror_separate >> /dev/null 2>&1; echo $?)
-    if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
-        lvcreate --type mirror -l 100%VG -m 1 --mirrorlog core -n mirror_separate mirror_separate
-    fi
-	wipefs -a /dev/mirror_separate/mirror_separate
+	if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
+        	lvcreate --type mirror -l 33%VG -m 1 -n mirror_separate mirror_separate
+	fi
+	wipefs -a /dev/mirror_separate/mirror_separate >> /dev/null 2>&1;
 	mkdir /mnt/mirror_separate
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirror_separate/mirror_separate
 	mount /dev/mirror_separate/mirror_separate /mnt/mirror_separate
+	echo "------------------------------------------------------------------"
 }
 
 function mkfs_primary_first_disk {
@@ -410,23 +415,23 @@ declare -A disk=();
 	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 
-    kernel=`uname -r | cut -c1-3`
-    result=`echo $kernel'>'$ext2_min_version | bc -l`
+    	kernel=`uname -r | cut -c1-3`
+    	result=`echo $kernel'>'$ext2_min_version | bc -l`
 
-    if [ "$result" != "0" ]; then
+    	if [ "$result" != "0" ]; then
 	    mkfs.ext2 -F "${disk[1]}5"
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	else
 	    tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
-    fi
+    	fi
 
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 
 
-	mkfs.ext4 -b 2048 -F "${disk[1]}7"
+	mkfs.ext4 -b 2052 -F "${disk[1]}7"
 	mkdir /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
 	mount "${disk[1]}7" /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
 }
@@ -434,7 +439,7 @@ declare -A disk=();
 mkfs_primary_first_disk
 
 
-function raid_partition {
+raid_partition() {
 
 
 declare -A disk_partition_sectors=();
@@ -448,10 +453,10 @@ for m in 4 5
 do
 	for i in {1..3}
 	do
-		echo "${disk_partition_sectors[$m]}"
+		#echo "${disk_partition_sectors[$m]}"
 		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 		sleep 0.5
-	
+
 	done
 	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 	for i in {5..7}
@@ -496,14 +501,14 @@ if [ -b /dev/md/md0-mirror_0 ]; then
 	mdadm --assemble /dev/md/md0-mirror_0 ${disks[3]}3 ${disks[4]}3
 	mkdir /mnt/md0-mirror_0
 else
-	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device	
+	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device
 fi
 
 
 yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
 if [ -b /dev/md/md5 ]; then
-        (echo n; echo ; echo ; echo ; echo ; echo w) | fdisk /dev/md/md5
-	mkdir /mnt/md5
+        (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/md/md5
+	mkdir /mnt/md5p1
 else
         echo /dev/md/md5 was not created. Skipped assemble of this device.
 fi
@@ -515,26 +520,29 @@ fi
 mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
-for array in `ls -l /dev/md | grep lrw | awk {'print $9'}`
-do
-    mkfs.ext4 -F /dev/md/$array
-    mount /dev/md/$array /mnt/$array
+echo "========================="
+data=($(ls -l /dev/md | grep ^lrw | awk '{print $9}'))
+for array in ${data[@]}; do
+	if [ "$array" != "md5"]; then
+		mkfs.ext4 -F /dev/md/$array
+	        mount /dev/md/$array /mnt/$array
+	fi
 done
 }
-
 raid_partition
 lvm_partitions_create
 
 
 
 function fstab {
-
+IFS_OLD=$IFS
 IFS=$'\n'
 set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5' | awk '{print $1,$2,$3}'))
-for ((i = 0; i < ${#fstab[@]}; i++)); do 
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1' | awk '{print $1,$2,$3}'))
+for ((i = 0; i < ${#fstab[@]}; i++)); do
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
+IFS=$IFS_OLD
 mount -a
 }
 
@@ -574,7 +582,7 @@ sde
 			sde1, sdf1 - raid-linear - ext3
 			sde2, sdf2 - raid-0 - ext4
 			sde3, sdf3 - raid-1 - xfs
-			sde5, sdf5 - 
+			sde5, sdf5 -
 
 sdf 	sdf1 - raid-linear
 	sdf2 - raid0
