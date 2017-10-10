@@ -196,7 +196,7 @@ wipefs -a ${disks[3]}3
 wipefs -a ${disks[4]}3
 mdadm --remove /dev/md/md0-mirror_0
 
-(echo d; echo w;) | fdisk /dev/md/md5p1
+#(echo d; echo w;) | fdisk /dev/md/md5p1
 mdadm --stop /dev/md/md5p1
 mdadm --zero-superblock ${disks[3]}5 ${disks[4]}5
 wipefs -a ${disks[3]}5
@@ -521,11 +521,10 @@ mdadm --detail --scan >> /etc/mdadm/mdadm.conf
 mdadm --detail --scan >> /etc/mdadm.conf
 
 data=($(ls -l /dev/md | grep ^lrw | awk '{print $9}'))
-for array in ${data[@]}
-do
-	if [ "$array" != "md5"]; then
-        mkfs.ext4 -F /dev/md/$array
-		mount /dev/md/$array /mnt/$array
+for array in ${data[@]}; do
+	if [ "$array" != "md5" ]; then
+	    mkfs.ext4 -F /dev/md/$array
+	    mount /dev/md/$array /mnt/$array
 	fi
 done
 }
