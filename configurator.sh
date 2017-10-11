@@ -149,6 +149,8 @@ umount /mnt/md0-mirror_0
 rm -rf /mnt/md0-mirror_0
 umount /mnt/md5p1
 rm -rf /mnt/md5p1
+umount /mnt/thinlvm
+rm -rf /mnt/thinlvm
 
 
 wipefs -a /dev/linear_xfs/linear_xfs
@@ -165,6 +167,12 @@ wipefs -a /dev/mirrored_ext4/mirrored_ext4
 lvremove -f /dev/mirrored_ext4/mirrored_ext4
 wipefs -a /dev/mirror_separate/mirror_separate
 lvremove -f /dev/mirror_separate/mirror_separate
+wipefs -a /dev/mapper/pool-thinlvm
+lvremove -f /dev/mapper/pool-thinlvm
+wipefs -a /dev/pool/lvmpool
+lvremove -f /dev/pool/lvmpool
+
+
 
 vgremove -f linear_xfs
 vgremove -f linear_ext4
@@ -173,6 +181,7 @@ vgremove -f striped_ext4
 vgremove -f mirrored_xfs
 vgremove -f mirrored_ext4
 vgremove -f mirror_separate
+vgremove -f pool
 
 
 mdadm --stop /dev/md/md0-linear_0
@@ -233,7 +242,7 @@ partprobe
 		wipefs -a ${disks[4]}$i
 	done
 
-sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4/d' /etc/fstab
+sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4\|md5p1\|thinlvm/d' /etc/fstab
 
 
 partprobe >> /dev/null 2>&1
@@ -257,6 +266,26 @@ if [[ "${disk_size[0]}" < "10737418240" || "${disk_size[1]}" < "10737418240" || 
 	echo ${disks[4]} : ${disk_size[4]}
 	exit 1
 fi
+
+function ext2_check {
+
+ext2_maj="`echo $ext2_min_version | cut -d "." -f 1`"
+ext2_min="`echo $ext2_min_version | cut -d "." -f 2`"
+
+kernel_maj="`uname -r | cut -d "." -f 1`"
+kernel_min="`uname -r | cut -d "." -f 2`"
+
+if [[ "$ext2_maj" -lt "$kernel_maj" || "$ext2_maj" -eq "$kernel_maj" ]]; then
+        if [[ "$ext2_min" -lt "$kernel_min" || "$ext2_min" -eq "$kernel_min" ]]; then
+            return 0 # True
+        fi
+else
+        tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
+	return 1 # False
+fi
+
+}
+
 
 function disk_primary_partitions_create {
 	declare -A disk_partition_sectors=();
@@ -395,6 +424,17 @@ function lvm_partitions_create {
 	mkfs.ext4 -F /dev/mirror_separate/mirror_separate
 	mount /dev/mirror_separate/mirror_separate /mnt/mirror_separate
 	echo "------------------------------------------------------------------"
+
+        pvcreate "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
+        vgcreate pool "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
+        lvcreate -l 100%VG -T pool/lvmpool
+        wipefs -a /dev/mapper/lvmpool >> /dev/null 2>&1;
+        lvcreate -V100G -T pool/lvmpool -n thinlvm
+        wipefs -a /dev/mapper/pool-thinlvm
+        mkfs.xfs -f /dev/mapper/pool-thinlvm
+        mkdir /mnt/thinlvm
+        mount /dev/mapper/pool-thinlvm /mnt/thinlvm/
+
 }
 
 function mkfs_primary_first_disk {
@@ -415,17 +455,11 @@ declare -A disk=();
 	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 
-    kernel=`uname -r | cut -c1-3`
-    result=`echo $kernel'>'$ext2_min_version | bc -l`
-
-    if [ "$result" != "0" ]; then
+        if ext2_check; then
 	    mkfs.ext2 -F "${disk[1]}5"
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-	else
-	    tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
-    fi
-
+        fi
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
@@ -537,7 +571,7 @@ function fstab {
 IFS_OLD=$IFS
 IFS=$'\n'
 set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1' | awk '{print $1,$2,$3}'))
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm' | awk '{print $1,$2,$3}'))
 for ((i = 0; i < ${#fstab[@]}; i++)); do
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
@@ -548,54 +582,107 @@ mount -a
 fstab
 : '
 Partition table  should have the following view:
-We should have 5 disks:
-sdb->
-	sdb1 - ext3
-	sdb2 - ext4
-	sdb3 - xfs
-	sdb4 - extended
-		sdb5 - ext2
-		sdb6 - btrfs
-		sdb7 - ext4 - block.size is 2K
+We should have 5 disks
+sdb                                            8:16   0   10G  0 disk
+├─sdb1                                         8:17   0  1,4G  0 part   /mnt/sdb1_ext3
+├─sdb2                                         8:18   0  1,4G  0 part   /mnt/sdb2_ext4
+├─sdb3                                         8:19   0  1,4G  0 part   /mnt/sdb3_xfs
+├─sdb4                                         8:20   0  512B  0 part
+├─sdb5                                         8:21   0  1,4G  0 part   /mnt/sdb5_ext2
+├─sdb6                                         8:22   0  1,4G  0 part   /mnt/sdb6_btrfs
+├─sdb7                                         8:23   0  1,4G  0 part   /mnt/sdb7_ext4_unaligned
+└─sdb8                                         8:24   0  1,4G  0 part
+  └─mirror_separate-mirror_separate_mlog     253:16   0    4M  0 lvm
+    └─mirror_separate-mirror_separate        253:19   0  1,4G  0 lvm    /mnt/mirror_separate
+sdc                                            8:32   0   10G  0 disk
+├─sdc1                                         8:33   0  1,4G  0 part
+│ └─linear_xfs-linear_xfs                    253:2    0  2,9G  0 lvm    /mnt/linear_xfs
+├─sdc2                                         8:34   0  1,4G  0 part
+│ └─striped_xfs-striped_xfs                  253:4    0  2,9G  0 lvm    /mnt/striped_xfs
+├─sdc3                                         8:35   0  1,4G  0 part
+│ ├─mirrored_xfs-mirrored_xfs_rmeta_0        253:6    0    4M  0 lvm
+│ │ └─mirrored_xfs-mirrored_xfs              253:10   0  1,4G  0 lvm    /mnt/mirrored_xfs
+│ └─mirrored_xfs-mirrored_xfs_rimage_0       253:7    0  1,4G  0 lvm
+│   └─mirrored_xfs-mirrored_xfs              253:10   0  1,4G  0 lvm    /mnt/mirrored_xfs
+├─sdc4                                         8:36   0  512B  0 part
+├─sdc5                                         8:37   0  1,4G  0 part
+│ └─linear_ext4-linear_ext4                  253:3    0  2,9G  0 lvm    /mnt/linear_ext4
+├─sdc6                                         8:38   0  1,4G  0 part
+│ └─striped_ext4-striped_ext4                253:5    0  2,9G  0 lvm    /mnt/striped_ext4
+├─sdc7                                         8:39   0  1,4G  0 part
+│ ├─mirrored_ext4-mirrored_ext4_rmeta_0      253:11   0    4M  0 lvm
+│ │ └─mirrored_ext4-mirrored_ext4            253:15   0  1,4G  0 lvm    /mnt/mirrored_ext4
+│ └─mirrored_ext4-mirrored_ext4_rimage_0     253:12   0  1,4G  0 lvm
+│   └─mirrored_ext4-mirrored_ext4            253:15   0  1,4G  0 lvm    /mnt/mirrored_ext4
+└─sdc8                                         8:40   0  1,4G  0 part
+sdd                                            8:48   0   10G  0 disk
+├─sdd1                                         8:49   0  1,4G  0 part
+│ └─linear_xfs-linear_xfs                    253:2    0  2,9G  0 lvm    /mnt/linear_xfs
+├─sdd2                                         8:50   0  1,4G  0 part
+│ └─striped_xfs-striped_xfs                  253:4    0  2,9G  0 lvm    /mnt/striped_xfs
+├─sdd3                                         8:51   0  1,4G  0 part
+│ ├─mirrored_xfs-mirrored_xfs_rmeta_1        253:8    0    4M  0 lvm
+│ │ └─mirrored_xfs-mirrored_xfs              253:10   0  1,4G  0 lvm    /mnt/mirrored_xfs
+│ └─mirrored_xfs-mirrored_xfs_rimage_1       253:9    0  1,4G  0 lvm
+│   └─mirrored_xfs-mirrored_xfs              253:10   0  1,4G  0 lvm    /mnt/mirrored_xfs
+├─sdd4                                         8:52   0  512B  0 part
+├─sdd5                                         8:53   0  1,4G  0 part
+│ └─linear_ext4-linear_ext4                  253:3    0  2,9G  0 lvm    /mnt/linear_ext4
+├─sdd6                                         8:54   0  1,4G  0 part
+│ └─striped_ext4-striped_ext4                253:5    0  2,9G  0 lvm    /mnt/striped_ext4
+├─sdd7                                         8:55   0  1,4G  0 part
+│ ├─mirrored_ext4-mirrored_ext4_rmeta_1      253:13   0    4M  0 lvm
+│ │ └─mirrored_ext4-mirrored_ext4            253:15   0  1,4G  0 lvm    /mnt/mirrored_ext4
+│ └─mirrored_ext4-mirrored_ext4_rimage_1     253:14   0  1,4G  0 lvm
+│   └─mirrored_ext4-mirrored_ext4            253:15   0  1,4G  0 lvm    /mnt/mirrored_ext4
+└─sdd8                                         8:56   0  1,4G  0 part
+sde                                            8:64   0   10G  0 disk
+├─sde1                                         8:65   0  1,4G  0 part
+│ └─md127                                      9:127  0  2,9G  0 linear /mnt/md0-linear_0
+├─sde2                                         8:66   0  1,4G  0 part
+│ └─md126                                      9:126  0  2,9G  0 raid0  /mnt/md0-stripe_0
+├─sde3                                         8:67   0  1,4G  0 part
+│ └─md125                                      9:125  0  1,4G  0 raid1  /mnt/md0-mirror_0
+├─sde4                                         8:68   0  512B  0 part
+├─sde5                                         8:69   0  1,4G  0 part
+│ └─md124                                      9:124  0  1,4G  0 raid1
+│   └─md124p1                                259:0    0  1,4G  0 md
+├─sde6                                         8:70   0  1,4G  0 part
+│ └─pool-lvmpool_tdata                       253:21   0  4,3G  0 lvm
+│   └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
+│     ├─pool-lvmpool                         253:23   0  4,3G  0 lvm
+│     └─pool-thinlvm                         253:24   0  100G  0 lvm    /mnt/thinlvm
+├─sde7                                         8:71   0  1,4G  0 part
+│ └─mirror_separate-mirror_separate_mimage_0 253:17   0  1,4G  0 lvm
+│   └─mirror_separate-mirror_separate        253:19   0  1,4G  0 lvm    /mnt/mirror_separate
+└─sde8                                         8:72   0  1,4G  0 part
+sdf                                            8:80   0   10G  0 disk
+├─sdf1                                         8:81   0  1,4G  0 part
+│ └─md127                                      9:127  0  2,9G  0 linear /mnt/md0-linear_0
+├─sdf2                                         8:82   0  1,4G  0 part
+│ └─md126                                      9:126  0  2,9G  0 raid0  /mnt/md0-stripe_0
+├─sdf3                                         8:83   0  1,4G  0 part
+│ └─md125                                      9:125  0  1,4G  0 raid1  /mnt/md0-mirror_0
+├─sdf4                                         8:84   0  512B  0 part
+├─sdf5                                         8:85   0  1,4G  0 part
+│ └─md124                                      9:124  0  1,4G  0 raid1
+│   └─md124p1                                259:0    0  1,4G  0 md
+├─sdf6                                         8:86   0  1,4G  0 part
+│ └─pool-lvmpool_tdata                       253:21   0  4,3G  0 lvm
+│   └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
+│     ├─pool-lvmpool                         253:23   0  4,3G  0 lvm
+│     └─pool-thinlvm                         253:24   0  100G  0 lvm    /mnt/thinlvm
+├─sdf7                                         8:87   0  1,4G  0 part
+│ └─mirror_separate-mirror_separate_mimage_1 253:18   0  1,4G  0 lvm
+│   └─mirror_separate-mirror_separate        253:19   0  1,4G  0 lvm    /mnt/mirror_separate
+└─sdf8                                         8:88   0  1,4G  0 part
+  ├─pool-lvmpool_tmeta                       253:20   0    8M  0 lvm
+  │ └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
+  │   ├─pool-lvmpool                         253:23   0  4,3G  0 lvm
+  │   └─pool-thinlvm                         253:24   0  100G  0 lvm    /mnt/thinlvm
+  └─pool-lvmpool_tdata                       253:21   0  4,3G  0 lvm
+    └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
+      ├─pool-lvmpool                         253:23   0  4,3G  0 lvm
+      └─pool-thinlvm                         253:24   0  100G  0 lvm    /mnt/thinlvm
 
 
-
-sdc
-	- lvm group -	lvm - ext2
-sdd			lvm - ext3
-			lvm - ext4
-			lvm - xfs
-			lvm - btrfs
-
-
-
-sde
-	sde1 - raid-linear
-	sde2 - raid0
-	sde3 - raid1
-	sde4 - extended
-		sde5 - unaligned 101 and 2048 BS ext3
-		sde6 - unaligned 102 and 2048 BS ext4
-		sde7 - unaligned 103 and 1024 BS xfs
-		sde8 - free
-			sde1, sdf1 - raid-linear - ext3
-			sde2, sdf2 - raid-0 - ext4
-			sde3, sdf3 - raid-1 - xfs
-			sde5, sdf5 -
-
-sdf 	sdf1 - raid-linear
-	sdf2 - raid0
-	sdf3 - raid1
-	sdf4 - extended
-		sdf5 - reserved for lvpool
-		sdf6 - reserved for lvpool
-		sdf7 - reserved for mirrored log
-		sdf8 - free
-
-
-
-
-
-
-
-'
