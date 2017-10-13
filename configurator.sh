@@ -70,34 +70,6 @@ if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]
         exit 1
 fi
 
-#disk1="${disks[0]}" >> $ignore
-#disk1_size=$(fdisk -l "$disk1" | grep Disk | awk '{print $5}') >> $ignore
-#disk1_=$(echo $disk1 | cut -d"/" -f3)
-#disk1_sectors=$(cat /sys/block/$disk1_/size)  >> $ignore
-#disk1_partition_sectors="$(($disk1_sectors/7))" >> $ignore
-#disk2=${disks[1]} >> $ignore
-#disk2_size=$(fdisk -l $disk2 | grep Disk | awk '{print $5}') >> $ignore
-#disk2_=$(echo $disk2 | cut -d"/" -f3)
-#disk2_sectors=$(cat /sys/block/$disk2_/size)  >> $ignore
-#disk2_partition_sectors=$(($disk2_sectors/7)) >> $ignore
-#disk3=${disks[2]} >> $ignore
-#disk3_size=$(fdisk -l $disk3 | grep Disk | awk '{print $5}') >> $ignore
-#disk3_=$(echo $disk3 | cut -d"/" -f3)
-#disk3_sectors=$(cat /sys/block/$disk3_/size)  >> $ignore
-#disk3_partition_sectors=$(($disk3_sectors/7)) >> $ignore
-#disk4=${disks[3]} >> $ignore
-#disk4_size=$(fdisk -l $disk4 | grep Disk | awk '{print $5}') >> $ignore
-#disk4_=$(echo $disk4 | cut -d"/" -f3)
-#disk4_sectors=$(cat /sys/block/$disk4_/size)  >> $ignore
-#disk4_partition_sectors=$(($disk4_sectors/7)) >> $ignore
-#disk5=${disks[4]} >> $ignore
-#disk5_size=$(fdisk -l $disk5 | grep Disk | awk '{print $5}') >> $ignore
-#disk5_=$(echo $disk5 | cut -d"/" -f3)
-#disk5_sectors=$(cat /sys/block/$disk5_/size)  >> $ignore
-#disk5_partition_sectors=$(($disk5_sectors/7)) >> $ignore
-
-
-
 size=()
 disk_size=()
 for i in ${disks[@]}
