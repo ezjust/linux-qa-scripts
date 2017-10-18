@@ -139,7 +139,7 @@ function device {
 
 printer
 COUNTER=0
-while [ $COUNTER -lt 10 ]; do
+while [ $COUNTER -lt $max_count ]; do
 	cpu >> $file
 	memory >> $file
 	disk_usage >> $file
