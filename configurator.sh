@@ -656,5 +656,4 @@ sdf                                            8:80   0   10G  0 disk
     └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
       ├─pool-lvmpool                         253:23   0  4,3G  0 lvm
       └─pool-thinlvm                         253:24   0  100G  0 lvm    /mnt/thinlvm
-
-
+'
