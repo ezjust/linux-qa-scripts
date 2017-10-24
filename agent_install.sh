@@ -238,8 +238,15 @@ else
         fi
 
 fi
-$list | grep 'rapid\|nbd\|dkms'
 
+installation_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
+if [ "$installation_result" -eq "3" ]
+then
+    echo "All packages are installed"
+else
+echo "Erorrs occured in agent install"
+exit 1
+fi
 
 
 }
