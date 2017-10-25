@@ -8,7 +8,7 @@ fi
 
 echo "Input the name of the archive with the logs: "
 read archive_name
-echo "Input IP of the remove machine you would like to tranfer logs:"
+echo "Input IP of the remote machine you would like to tranfer logs:"
 read IP
 echo "Input the user for scp on the server you would like to send logs:"
 read user
