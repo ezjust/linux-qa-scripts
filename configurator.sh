@@ -405,7 +405,7 @@ function lvm_partitions_create {
         wipefs -a /dev/mapper/pool-thinlvm
         mkfs.xfs -f /dev/mapper/pool-thinlvm
         mkdir /mnt/thinlvm
-        mount /dev/mapper/pool-thinlvm /mnt/thinlvm/
+        #mount /dev/mapper/pool-thinlvm /mnt/thinlvm/
 
 }
 
