@@ -238,6 +238,17 @@ else
         fi
 
 fi
+}
+
+
+
+function update {
+echo "update"
+}
+
+
+function check_install {
+
 
 installation_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
 configuration_result=`less /var/log/apprecovery/configuration.log | grep Fail; echo $?`
@@ -249,17 +260,7 @@ echo "Erorrs occured in agent install"
 exit 1
 fi
 
-
 }
-
-
-
-function update {
-echo "update"
-}
-
-
-
 
 function configuration {
 user=rr
@@ -312,3 +313,4 @@ install_repo
 installation # we run installation process
 configuration # user added; rapidrecovery-vss is built for all available kernels; agent started;
 details # details are provided for further protection
+check_install # parse logs for the errors
