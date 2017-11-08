@@ -240,7 +240,8 @@ else
 fi
 
 installation_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
-if [ "$installation_result" -eq "3" ]
+configuration_result=`less /var/log/apprecovery/configuration.log | grep Fail; echo $?`
+if [[ "$installation_result" -eq "3" && "$configuration_result" -eq "0" ]]
 then
     echo "All packages are installed"
 else
