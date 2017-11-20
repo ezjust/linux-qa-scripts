@@ -81,14 +81,14 @@ for i in ${disks[@]}
         partition_size=$(($capacity*$block_size/1024/7))
         #echo partition size is : $partition_size
         size+=($partition_size)
-	     ''' disk_cut=$(echo $i | cut -d"/" -f3)
+	    ''' disk_cut=$(echo $i | cut -d"/" -f3)
         capacity=`cat /sys/block/$disk_cut/size`
         block_size=`cat /sys/block/sdb/queue/physical_block_size`
         disk_size+=(`cat /sys/block/$disk_cut/size`)
         partition_size=$(($capacity*$block_size/1024/7))
         #echo partition size is : $partition_size
         size+=($partition_size)
-'''
+		'''
     done
 
 if [[ -n "${disks}" && "$configuration" == "--clean" ]]; then
