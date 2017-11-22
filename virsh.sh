@@ -21,7 +21,7 @@ output=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n +2`
 amount=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n +2 | wc -l`
 
 if [ $amount -lt 1 ]; then
-	echo "There are not xml for the KVM machines"
+	echo "There are no xml for the KVM machines"
 	exit 1
 fi
 #debug output to make sure script works as expected
@@ -42,7 +42,7 @@ done
 find $dir -type f -name "*.xml" |  tar cJfTP $dir/virshxml.tar.gz -
 
 if [ -e $dir/virshxml.tar.gz ]; then
-	echo "$(tput setaf 2)Competed. Please provide virshxml archive to the support team.$(tput sgr0)"
+	echo "$(tput setaf 2)Completed. Please provide virshxml archive to the support team.$(tput sgr0)"
 	exit 0
 else:
 	echo "$(tput setaf 2)Some errors occured$(tput sgr0)"
