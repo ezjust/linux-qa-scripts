@@ -6,7 +6,7 @@ if [ `id -u` -ne  0  ]; then
 fi
 
 if [ `virsh -v >> /dev/null 2>&1; echo $?` -ne 0 ]; then
-	echo "KVM is not installed"
+	echo "KVM and other packages are not installed"
 	exit 1
 fi
 
