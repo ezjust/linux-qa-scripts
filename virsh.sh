@@ -5,11 +5,25 @@ if [ `id -u` -ne  0  ]; then
 	exit 1
 fi
 
+if [ `virsh -v >> /dev/null 2>&1; echo $?` -ne 0 ]; then
+	echo "KVM is not installed"
+	exit 1
+fi
+
 a=()
+
 dir="/tmp/virsh/"
+
 mkdir $dir
+
 output=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n 1`
 
+amount=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n 1 | wc -l`
+
+if [ $amount -lt 1 ]; then
+	echo "There are not xml for the KVM machines"
+	exit 1
+fi
 #debug output to make sure script works as expected
 #output=`df -h | awk {'print $1'}`
 
