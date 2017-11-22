@@ -16,9 +16,9 @@ dir="/tmp/virsh/"
 
 mkdir $dir
 
-output=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n 1`
+output=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n +2`
 
-amount=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n 1 | wc -l`
+amount=`virsh list --all | awk '{print $2}' | tr -s '\n' '\n' | tail -n +2 | wc -l`
 
 if [ $amount -lt 1 ]; then
 	echo "There are not xml for the KVM machines"
