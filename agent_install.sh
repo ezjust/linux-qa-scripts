@@ -144,8 +144,17 @@ os=rhel
 version=$(cat /etc/os-release | grep -w VERSION_ID= | awk -F '["/.]' '{print $2}')
 if [ -z $version ]; then
         version=$(cat /etc/centos-release | awk '{print$3}'| awk -F '["/.]' '{print $1}')
+        if [ -z $version ]; then
+                version=$(cat /etc/redhat-release | awk '{print$7}'| awk -F '["/.]' '{print $1}')
+                if [ -z $version ]; then
+        			echo "Error occured to identify OS version"
+        			exit 1
+				fi
+        fi
 fi
+
 arch=$(arch)
+
 if [ "$arch" == "i686" ]; then
         arch="x86_32"
 fi
