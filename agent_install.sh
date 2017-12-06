@@ -59,13 +59,6 @@ case $i in
 esac
 done
 
-echo "$HELP is HELP"
-echo "$CLEAN is CLEAN"
-echo "$INSTALL is INSTALL"
-echo "$BRANCH is BRANCH"
-echo "$LOGS is LOGS"
-
-
 
 if [[ -n $HELP ]]; then
 	#helper
@@ -311,7 +304,7 @@ if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$install
 then
     echo "All packages are installed"
 else
-echo "Erorrs occured in agent install"
+    tput setaf 1; echo "Erorrs occured in agent install"; tput sgr0
 exit 1
 fi
 
@@ -325,7 +318,7 @@ useradd $user
 groupadd $user
 useradd -G $user $user
 
-check_firewall_status=`$($rr_config -f list >> /dev/null; echo $?)`
+check_firewall_status=$($rr_config -f list >> /dev/null; echo $?)
 if [[ "$check_firewall_status" -eq "0" ]]; then
         firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 fi
