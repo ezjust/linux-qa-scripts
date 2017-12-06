@@ -300,7 +300,7 @@ function check_install {
 packages_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
 configuration_result=`less /var/log/apprecovery/configuration.log | grep Fail >> /dev/null; echo $?`
 installation_result=`cat /var/log/apprecovery/agent.installation.log | grep Fail >> /dev/null; echo $?`
-if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$installation_reslut" -ne "0" ]]
+if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$installation_result" -ne "0" ]]
 then
     echo "All packages are installed"
 else
@@ -336,7 +336,7 @@ fi
 
 
 function details {
-IP=$('ip addr show | grep '10.10' | awk '{print $2}' | cut -d'/' -f1')
+IP=$(ip addr show | grep '10.10' | awk '{print $2}' | cut -d'/' -f1)
 
 echo "$IP"
 echo "$user::$password"
