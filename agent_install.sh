@@ -336,7 +336,7 @@ fi
 
 
 function details {
-IP=$(ifconfig | grep 10.10. | awk '{print $2}')
+IP=$('ip addr show | grep '10.10' | awk '{print $2}' | cut -d'/' -f1')
 
 echo "$IP"
 echo "$user::$password"
