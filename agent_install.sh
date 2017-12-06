@@ -7,16 +7,16 @@ function helper {
         echo "Usage: agent_install [options] <argv>"
         echo ""
         echo "       -h                      Show help options."
-        echo "       -clean          Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed."
-        echo "       -install        <Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed."
+        echo "       -c/--clean          Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed."
+        echo "       -i/--install        <Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed."
         echo "                               <Repo file> - if this argv is used, please, make sure that repo file is executable. To make file executable, please do the next: "chmod +x file"."
         echo ""
         echo "Example: "
-        echo "       agent_install -h"
-        echo "       agent_install -logs"
-        echo "       agent_install -clean"
-        echo "       agent_install -install 7.0.0"
-        echo "       agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm"
+        echo "       agent_install -h/--help"
+        echo "       agent_install -l/--logs"
+        echo "       agent_install -c/--clean"
+        echo "       agent_install -i/--install -b/--build=7.0.0/7.1.0"
+        echo "       agent_install --install --build=7.1.0"
 }
 
 if [[ -z $@ ]]; then
