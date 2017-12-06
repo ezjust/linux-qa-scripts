@@ -324,14 +324,22 @@ port=8006
 useradd $user
 groupadd $user
 useradd -G $user $user
+
+check_firewall_status=`$($rr_config -f list >> /dev/null; echo $?)`
+if [[ "$check_firewall_status" -eq "0" ]]; then
+        firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
+fi
+
 #echo "1 $port" | $rr_config # configure default port for transfering
 echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
 echo "4 all" | $rr_config # install rapidrecovery-vss into all available system kernels
 echo "5" | $rr_config # allow to start agent immediately
-firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
-echo "3 $firewall" | $rr_config # use first available option to configure firewall.
+if [[ -n $firewall ]]; then
+        echo "3 $firewall" | $rr_config # use first available option to configure firewall.
+fi
 }
+
 
 
 function details {
