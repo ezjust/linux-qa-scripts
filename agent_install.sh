@@ -1,38 +1,78 @@
 #!/usr/bin/env bash
 #set -x
-: '
-This script is used by the Linux QA Team to run everyday tasks.
-	Usage: agent_install [options] <argv>
 
-		-h 			Show help options.
-		-clean   	Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed.
-		-install 	<Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed.
-					<Repo file> - if this argv is used, please, make sure that repo file is executable. To make file executable, please do the next: "chmod +x file".
+function helper {
 
-	Example: 
-		agent_install -h
-		agent_install -logs
-		agent_install -clean
-		agent_install -install 7.0.0
-		agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm
-'
+        echo "This script is used by the Linux QA Team to run everyday tasks."
+        echo "Usage: agent_install [options] <argv>"
+        echo ""
+        echo "       -h                      Show help options."
+        echo "       -clean          Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed."
+        echo "       -install        <Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed."
+        echo "                               <Repo file> - if this argv is used, please, make sure that repo file is executable. To make file executable, please do the next: "chmod +x file"."
+        echo ""
+        echo "Example: "
+        echo "       agent_install -h"
+        echo "       agent_install -logs"
+        echo "       agent_install -clean"
+        echo "       agent_install -install 7.0.0"
+        echo "       agent_install -install rapidrecovery-repo-6.0.0.10286-rhel7-x86_64.rpm"
+}
 
-FILEPATH=`/usr/bin/readlink -e $0`
-command=$1
-build=$2
-
-
-if [[ "$command" != "-h" && "$command" != "-clean" && "$command" != "-install" && "$command" != "-logs" && -z "$build" ]]; then
-	sed -n '4,17p' $FILEPATH
-	exit 1
+if [[ -z $@ ]]; then
+        tput setaf 1; echo "ERROR: No arguments"; tput sgr0
+	echo ""
+        helper  
+        exit 1
 fi
 
-if [[ "$command" == "-h" ]]; then
-	sed -n '4,17p' $FILEPATH
+
+for i in "$@"
+do
+case $i in
+    -h|--help)
+    HELP=y
+    shift # past argument=value
+    ;;
+    -c|--clean)
+    CLEAN=y
+    shift # past argument=value
+    ;;
+    -i|--install)
+    INSTALL=y
+    shift # past argument=value
+    ;;
+    -b=*|--branch=*)
+    BRANCH="${i#*=}"
+    shift # past argument=value
+    ;;
+    -l|--logs)
+    LOGS=y
+    shift # past argument=value
+    ;;
+    *)
+    tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
+    echo ""
+    helper
+    exit 1          # unknown option
+    ;;
+esac
+done
+
+echo "$HELP is HELP"
+echo "$CLEAN is CLEAN"
+echo "$INSTALL is INSTALL"
+echo "$BRANCH is BRANCH"
+echo "$LOGS is LOGS"
+
+
+
+if [[ -n $HELP ]]; then
+	#helper
+	echo $HELP
+	echo "I am here"
 	exit 0
 fi
-
-
 
 package_name=rapidrecovery-agent
 rr_config=/usr/bin/rapidrecovery-config
@@ -105,15 +145,18 @@ fi
 
 }
 
-echo $build
+echo $BRANCH
 
-if [ "$command" = "-clean" ]
+if [[ -n $CLEAN ]]
 then
 	repo_cleaner
 	exit 0	
 fi
 
-echo "Agent Installer Script"
+
+function get_installation_info {
+
+	echo "Agent Installer Script"
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]
 then
 operator="apt-get"
@@ -184,27 +227,28 @@ fi
 echo $operator
 
 echo "List of the packages before installation"
-$list | grep 'rapid\|nbd\|dkms'
+$list | grep 'rapid\|nbd\|dkms'	
 
-
+}
 
 
 function install_repo {
-echo ${#build}
-if [ "${#build}" -gt "5" ]
+get_installation_info
+echo ${#BRANCH}
+if [ "${#BRANCH}" -gt "5" ]
 then 
-	$install $build
+	$install $BRANCH
 	if [ $? -ne "0" ]
 	then
-		echo "$build is not available for installation."
+		echo "$BRANCH is not available for installation."
 		exit 1
 	fi
 else
-	wget "https://s3.amazonaws.com/repolinux/$build/repo-packages/rapidrecovery-repo-$os$version-$arch.$package" -O "repo.file"
+	wget "https://s3.amazonaws.com/repolinux/$BRANCH/repo-packages/rapidrecovery-repo-$os$version-$arch.$package" -O "repo.file"
 
 	if [ $? -ne "0" ]
 	then
-		echo "$build is not available for installation"
+		echo "$BRANCH is not available for installation"
 		exit 1
 	fi
 	chmod +x repo.file
@@ -217,6 +261,7 @@ fi
 
 
 function installation {
+
 if [ $operator = "zypper" ]
 then
 $operator clean --all
@@ -259,9 +304,10 @@ echo "update"
 function check_install {
 
 
-installation_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
+packages_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
 configuration_result=`less /var/log/apprecovery/configuration.log | grep Fail >> /dev/null; echo $?`
-if [[ "$installation_result" -eq "3" && "$configuration_result" -ne "0" ]]
+installation_result=`cat /var/log/apprecovery/agent.installation.log | grep Fail >> /dev/null; echo $?`
+if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$installation_reslut" -ne "0" ]]
 then
     echo "All packages are installed"
 else
@@ -307,8 +353,9 @@ cp /var/log/syslog $log_dir >> /dev/null
 tar -zcvf Logs-$IP-$(date | awk {'print $5'}) $log_dir
 }
 
-if [[ "$command" == "-logs" ]]; then
+if [[ -n $LOGS ]]; then
 	get_logs
+	echo "LOGS"
 	exit 0
 fi
 
