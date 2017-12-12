@@ -2,6 +2,8 @@
 #set -x
 ver=1.0.1
 
+if 
+
 function helper {
 
         echo "This script is used by the Linux QA Team to run everyday tasks."
@@ -311,7 +313,7 @@ if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$install
 then
     echo "All packages are installed"
 else
-    tput setaf 1; echo "Erorrs occured in agent install"; tput sgr0
+    tput setaf 1; echo "Errors occured in agent install"; tput sgr0
 exit 1
 fi
 
