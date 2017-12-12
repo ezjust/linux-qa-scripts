@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #set -x
-ver=1.0.1
-
+ver=1.0.2
 
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/agent_install.sh | head -3 | grep -w ver | cut -d= -f2`
 
@@ -79,9 +78,7 @@ done
 
 
 if [[ -n $HELP ]]; then
-	#helper
-	echo $HELP
-	echo "I am here"
+	helper
 	exit 0
 fi
 
