@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #set -x
-ver=1.0.0
+ver=1.0.1
 
 function helper {
 
@@ -8,16 +8,18 @@ function helper {
         echo "Usage: agent_install [options] <argv>"
         echo ""
         echo "       -h                      Show help options."
+        echo "       -v                      Print current version of the script."
         echo "       -c/--clean          Perfrom unsinstall of the rr-agent and suggested packages. For this option repo package also will be removed."
         echo "       -i/--install        <Version>, <Repo file> You will need to specify version of the branch to install the newest available package or you can specify dedicated repo file to be installed."
         echo "                               <Repo file> - if this argv is used, please, make sure that repo file is executable. To make file executable, please do the next: "chmod +x file"."
         echo ""
         echo "Example: "
         echo "       agent_install -h/--help"
+        echo "       agent_install -v/--version"
         echo "       agent_install -l/--logs"
         echo "       agent_install -c/--clean"
-        echo "       agent_install -i/--install -b/--build=7.0.0/7.1.0"
-        echo "       agent_install --install --build=7.1.0"
+        echo "       agent_install -i/--install -b/--branch=7.0.0/7.1.0"
+        echo "       agent_install --install --branch=7.1.0"
 }
 
 if [[ -z $@ ]]; then
