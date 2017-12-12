@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #set -x
+ver=1.0.0
 
 function helper {
 
@@ -48,6 +49,10 @@ case $i in
     ;;
     -l|--logs)
     LOGS=y
+    shift # past argument=value
+    ;;
+     -v|--version)
+    VERSION=y
     shift # past argument=value
     ;;
     *)
@@ -368,6 +373,10 @@ if [[ -n $LOGS ]]; then
 	exit 0
 fi
 
+if [[ -n $VERSION ]]; then
+	echo $ver
+	exit 0
+fi
 
 #function 
 
