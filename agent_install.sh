@@ -310,10 +310,14 @@ fi
 
 }
 
+
+
 function configuration {
 user=rr
 password=123asdQ
 port=8006
+string=`cut -d: -f1 /etc/passwd` # get list of all users
+sudoers=`sudo cat /etc/sudoers`
 useradd $user
 groupadd $user
 useradd -G $user $user
@@ -328,8 +332,12 @@ echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
 echo "4 all" | $rr_config # install rapidrecovery-vss into all available system kernels
 echo "5" | $rr_config # allow to start agent immediately
-if [[ -n $firewall ]]; then
+if [[ -n $firewall ]]; then # In case if firewall is not Null - means enabled.
         echo "3 $firewall" | $rr_config # use first available option to configure firewall.
+fi
+
+if echo $string | grep -w vagrant >> /dev/null; then
+	echo "2 vagrant" | $rr_config # add vagrant user as a user allowed for the protection. Used in autotests.
 fi
 }
 
