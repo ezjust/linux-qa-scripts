@@ -2,7 +2,16 @@
 #set -x
 ver=1.0.1
 
-if 
+
+check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/agent_install.sh | head -3 | grep -w ver | cut -d= -f2`
+
+if [[ $check_version != $ver ]]; then
+	echo "There is newest version on the GitHub"
+	echo "You are running the $ver version of the script"
+	echo "There is available the $check_version version on the GitHub"
+	exit 1
+fi
+
 
 function helper {
 
