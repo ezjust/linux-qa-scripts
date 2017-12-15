@@ -62,7 +62,7 @@ fi
 
 if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]}" || -z "${disks[4]}" ]] && [[ "$configuration" == "--create" ]]; then
         echo "You have not specified all 5 needed disks for default partition creation. You have the following disks:"
-	    echo "${disks[0]}"
+        echo "${disks[0]}"
         echo "${disks[1]}"
         echo "${disks[2]}"
         echo "${disks[3]}"
@@ -76,7 +76,7 @@ for i in ${disks[@]}
     do
         disk_cut=$(echo $i | cut -d"/" -f3)
         capacity=`blockdev --getsz $i` # gets size of the disk in the 512 block size
-		block_size="512" # see before. We gets 512 block size
+        block_size="512" # see before. We gets 512 block size
         disk_size+=(`blockdev --getsz $i`)
         partition_size=$(($capacity*$block_size/1024/7))
         #echo partition size is : $partition_size
@@ -107,31 +107,12 @@ rm -rf /mnt/$(echo ${disks[0]}6 | cut -d"/" -f3)_btrfs
 umount /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
 rm -rf /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
 
-umount /mnt/linear_xfs
-rm -rf /mnt/linear_xfs
-umount /mnt/linear_ext4
-rm -rf /mnt/linear_ext4
-umount /mnt/striped_xfs
-rm -rf /mnt/striped_xfs
-umount /mnt/striped_ext4
-rm -rf /mnt/striped_ext4
-umount /mnt/mirrored_xfs
-rm -rf /mnt/mirrored_xfs
-umount /mnt/mirrored_ext4
-rm -rf /mnt/mirrored_ext4
-umount /mnt/mirror_separate
-rm -rf /mnt/mirror_separate
 
-umount /mnt/md0-linear_0
-rm -rf /mnt/md0-linear_0
-umount /mnt/md0-stripe_0
-rm -rf /mnt/md0-stripe_0
-umount /mnt/md0-mirror_0
-rm -rf /mnt/md0-mirror_0
-umount /mnt/md5p1
-rm -rf /mnt/md5p1
-umount /mnt/thinlvm
-rm -rf /mnt/thinlvm
+for i in /mnt/linear_xfs /mnt/linear_ext4 /mnt/striped_xfs /mnt/striped_ext4 /mnt/mirrored_xfs /mnt/mirrored_ext4 /mnt/mirror_separate /mnt/md0-linear_0 /mnt/md0-stripe_0 /mnt/md0-mirror_0 /mnt/md5p1 /mnt/thinlvm
+do
+	umount $i
+	rm -rf $i
+done
 
 
 wipefs -a /dev/linear_xfs/linear_xfs
@@ -436,11 +417,11 @@ declare -A disk=();
 	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
 
-        if ext2_check; then
-	    mkfs.ext2 -F "${disk[1]}5"
+    if ext2_check; then
+	   	mkfs.ext2 -F "${disk[1]}5"
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-        fi
+    fi
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
@@ -473,7 +454,9 @@ do
 		sleep 0.5
 
 	done
+	
 	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+	
 	for i in {5..7}
 	do
 		(echo n; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
@@ -491,10 +474,13 @@ do
     mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
 done
 
+RAID=() # create an array with the list of the created raids
+
 mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 ${disks[3]}1 ${disks[4]}1
 if [ -b /dev/md/md0-linear_0 ]; then
 	mdadm --assemble --verbose /dev/md/md0-linear_0 ${disks[3]}1 ${disks[4]}1
 	mkdir /mnt/md0-linear_0
+	RAID+=('md0-linear_0')
 else
 	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
 fi
@@ -505,6 +491,7 @@ mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 ${disks[3]}2
 if [ -b /dev/md/md0-stripe_0 ]; then
 	mdadm --assemble --verbose /dev/md/md0-stripe_0 ${disks[3]}2 ${disks[4]}2
 	mkdir /mnt/md0-stripe_0
+	RAID+=('md0-stripe_0')
 else
 	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
 fi
@@ -515,6 +502,7 @@ yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 ${disk
 if [ -b /dev/md/md0-mirror_0 ]; then
 	mdadm --assemble /dev/md/md0-mirror_0 ${disks[3]}3 ${disks[4]}3
 	mkdir /mnt/md0-mirror_0
+	RAID+=('md0-mirror_0')
 else
 	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device
 fi
@@ -522,24 +510,27 @@ fi
 
 yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
 if [ -b /dev/md/md5 ]; then
-        (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/md/md5
+    (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/md/md5
 	mkdir /mnt/md5p1
+	RAID+=('md5p1')
 else
-        echo /dev/md/md5 was not created. Skipped assemble of this device.
+    echo /dev/md/md5 was not created. Skipped assemble of this device.
 fi
 
+partprobe
 
+if [ -e /etc/mdadm/mdadm.conf ]; then
+	mdadm --detail --scan >> /etc/mdadm/mdadm.conf
+fi
 
+if [ -e /etc/mdadm.conf ]; then
+	mdadm --detail --scan >> /etc/mdadm.conf
+fi
 
-
-mdadm --detail --scan >> /etc/mdadm/mdadm.conf
-mdadm --detail --scan >> /etc/mdadm.conf
-
-data=($(ls -l /dev/md | grep ^lrw | awk '{print $9}'))
-for array in ${data[@]}; do
-	if [ "$array" != "md5" ]; then
-	    mkfs.ext4 -F /dev/md/$array
-	    mount /dev/md/$array /mnt/$array
+for raid in ${RAID[@]}; do
+	if [ "$raid" != "md5" ]; then
+	    mkfs.ext4 -F /dev/md/$raid
+	    mount /dev/md/$raid /mnt/$raid
 	fi
 done
 }
@@ -556,7 +547,9 @@ fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|
 for ((i = 0; i < ${#fstab[@]}; i++)); do
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
+
 IFS=$IFS_OLD
+
 mount -a
 }
 
