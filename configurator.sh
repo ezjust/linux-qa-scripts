@@ -107,73 +107,64 @@ rm -rf /mnt/$(echo ${disks[0]}6 | cut -d"/" -f3)_btrfs
 umount /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
 rm -rf /mnt/$(echo ${disks[0]}7 | cut -d"/" -f3)_ext4_unaligned
 
+list_mount_points=(
+/mnt/linear_xfs
+/mnt/linear_ext4
+/mnt/striped_xfs
+/mnt/striped_ext4
+/mnt/mirrored_xfs
+/mnt/mirrored_ext4
+/mnt/mirror_separate
+/mnt/md0-linear_0
+/mnt/md0-stripe_0
+/mnt/md0-mirror_0
+/mnt/md5p1
+/mnt/thinlvm
+)
 
-for i in /mnt/linear_xfs /mnt/linear_ext4 /mnt/striped_xfs /mnt/striped_ext4 /mnt/mirrored_xfs /mnt/mirrored_ext4 /mnt/mirror_separate /mnt/md0-linear_0 /mnt/md0-stripe_0 /mnt/md0-mirror_0 /mnt/md5p1 /mnt/thinlvm
+for i in ${list_mount_points[@]}
 do
 	umount $i
 	rm -rf $i
 done
 
+list_devices=(
+/dev/linear_xfs/linear_xfs
+/dev/linear_ext4/linear_ext4
+/dev/striped_xfs/striped_xfs
+/dev/striped_ext4/striped_ext4
+/dev/mirrored_xfs/mirrored_xfs
+/dev/mirrored_ext4/mirrored_ext4
+/dev/mirror_separate/mirror_separate
+/dev/mapper/pool-thinlvm
+/dev/pool/lvmpool
+)
 
-wipefs -a /dev/linear_xfs/linear_xfs
-lvremove -f /dev/linear_xfs/linear_xfs
-wipefs -a /dev/linear_ext4/linear_ext4
-lvremove -f /dev/linear_ext4/linear_ext4
-wipefs -a /dev/striped_xfs/striped_xfs
-lvremove -f /dev/striped_xfs/striped_xfs
-wipefs -a /dev/striped_ext4/striped_ext4
-lvremove -f /dev/striped_ext4/striped_ext4
-wipefs -a /dev/mirrored_xfs/mirrored_xfs
-lvremove -f /dev/mirrored_xfs/mirrored_xfs
-wipefs -a /dev/mirrored_ext4/mirrored_ext4
-lvremove -f /dev/mirrored_ext4/mirrored_ext4
-wipefs -a /dev/mirror_separate/mirror_separate
-lvremove -f /dev/mirror_separate/mirror_separate
-wipefs -a /dev/mapper/pool-thinlvm
-lvremove -f /dev/mapper/pool-thinlvm
-wipefs -a /dev/pool/lvmpool
-lvremove -f /dev/pool/lvmpool
+for i in ${list_devices[@]}
+do
+	wipefs -a $i
+	lvremove -f $i
+done
 
+for i in linear_xfs linear_ext4 striped_xfs striped_ext4 mirrored_xfs mirrored_ext4 mirror_separate pool
+do
+	vgremove -f $i
+done
 
+list_raid=(/dev/md/md0-linear_0 /dev/md/md0-stripe_0 /dev/md/md0-mirror_0 /dev/md/md5p1)
+list_inc=(1 2 3 5) #list of the partitions used for the raid
+k=0
+for i in ${list_raid[@]}
+do
+	mdadm --stop $i
+	mdadm --zero-superblock ${disks[3]}${list_inc[$k]} ${disks[4]}${list_inc[$k]}
+	wipefs -a ${disks[3]}${list_inc[$k]}
+	wipefs -a ${disks[4]}${list_inc[$k]}
+	mdadm --remove $i
+	let k=$k+1
+done
 
-vgremove -f linear_xfs
-vgremove -f linear_ext4
-vgremove -f striped_xfs
-vgremove -f striped_ext4
-vgremove -f mirrored_xfs
-vgremove -f mirrored_ext4
-vgremove -f mirror_separate
-vgremove -f pool
-
-
-mdadm --stop /dev/md/md0-linear_0
-mdadm --zero-superblock ${disks[3]}1 ${disks[4]}1
-wipefs -a ${disks[3]}1
-wipefs -a ${disks[4]}1
-mdadm --remove /dev/md/md0-linear_0
-
-
-
-mdadm --stop /dev/md/md0-stripe_0
-mdadm --zero-superblock ${disks[3]}2 ${disks[4]}2
-wipefs -a ${disks[3]}2
-wipefs -a ${disks[4]}2
-mdadm --remove /dev/md/md0-stripe_0
-
-
-mdadm --stop /dev/md/md0-mirror_0
-mdadm --zero-superblock ${disks[3]}3 ${disks[4]}3
-wipefs -a ${disks[3]}3
-wipefs -a ${disks[4]}3
-mdadm --remove /dev/md/md0-mirror_0
-
-#(echo d; echo w;) | fdisk /dev/md/md5p1
-mdadm --stop /dev/md/md5p1
-mdadm --zero-superblock ${disks[3]}5 ${disks[4]}5
-wipefs -a ${disks[3]}5
-wipefs -a ${disks[4]}5
-mdadm --remove /dev/md/md5
-(echo d; echo w;) | fdisk /dev/md/md5
+(echo d; echo w;) | fdisk /dev/md/md5 # to complete clean of the /dev/md/md5p1
 
 
 sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf
@@ -640,7 +631,7 @@ sdf                                            8:80   0   10G  0 disk
 ├─sdf4                                         8:84   0  512B  0 part
 ├─sdf5                                         8:85   0  1,4G  0 part
 │ └─md124                                      9:124  0  1,4G  0 raid1
-│   └─md124p1                                259:0    0  1,4G  0 md
+│   └─md124p1                                259:0    0  1,4G  0 md     /mnt/md5p1
 ├─sdf6                                         8:86   0  1,4G  0 part
 │ └─pool-lvmpool_tdata                       253:21   0  4,3G  0 lvm
 │   └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
