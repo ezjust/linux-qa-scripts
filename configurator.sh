@@ -9,11 +9,11 @@ if [[ "$configuration" != "--create" && "$configuration" != "--clean" ]]; then
 tput setaf 1;	echo "You have not specified available options:"; tput sgr0
 		echo ""
 tput setaf 2;   echo "--create  -   to create default configuration scheme for testing"; tput sgr0
-		echo 	EXAMPLE :   ./configuration.sh --create /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+		echo 	EXAMPLE :   ./configurator.sh --create /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces.
 		echo ""
 tput setaf 3;	echo "--clean   -   to clean up default configuration scheme for testing"; tput sgr0
-		echo 	EXAMPLE :   ./configuration.sh --clean /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+		echo 	EXAMPLE :   ./configurator.sh --clean /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
@@ -21,6 +21,10 @@ That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have p
 		     - Ubuntu 16.10 - passed
 		     - Ubuntu 16.04 - passed
 		     - Oracle 7.1   - passed
+		     - Centos 7.3   - passed
+		     - Centos 7.4   - passed
+		     - SLES 12 SP2  - passed
+		     - Ubuntu 17.04 - passed
 		     - Ubuntu 12.04 - failed  - lvm2 has old version"
 		echo "
 
