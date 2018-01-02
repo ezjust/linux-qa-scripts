@@ -1,19 +1,19 @@
 #!/bin/bash
 #set -x
-configuration=$1
-disks=$2
+version="1.0.0"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
-if [[ "$configuration" != "--create" && "$configuration" != "--clean" ]]; then
-tput setaf 1;	echo "You have not specified available options:"; tput sgr0
+function helper {
+
+tput setaf 4;	echo "You are in the HELP MENU:"; tput sgr0
 		echo ""
-tput setaf 2;   echo "--create  -   to create default configuration scheme for testing"; tput sgr0
-		echo 	EXAMPLE :   ./configurator.sh --create /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+tput setaf 2;   echo "--install/-i     - to create default configuration scheme for testing"; tput sgr0
+		echo 	EXAMPLE :   ./configurator.sh --install --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces.
 		echo ""
-tput setaf 3;	echo "--clean   -   to clean up default configuration scheme for testing"; tput sgr0
-		echo 	EXAMPLE :   ./configurator.sh --clean /dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme for testing"; tput sgr0
+		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
@@ -29,42 +29,58 @@ That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have p
 		echo "
 
 		     "
-	exit 1
-fi
-
-
-function activate_disks {
-    	for i in `ls /sys/class/scsi_host/`; do
-       		exists=`grep mpt /sys/class/scsi_host/$i/proc_name`
-		if [[ ! -z $exists ]]; then
-			echo "- - -" > /sys/class/scsi_host/$i/scan
-		fi
-	done
 }
 
-activate_disks
-
-
-if [ "`rpm -? >> /dev/null 2>&1; echo $?`" == "0" ]; then
-	pacman="rpm -qa"
-else
-	pacman="dpkg --list"
+if [[ -z $@ ]]; then
+        tput setaf 1; echo "ERROR: No arguments"; tput sgr0
+		echo ""
+        helper  
+        exit 1
 fi
 
-if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
-	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc"
-	echo ""
-	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc'
-	exit 1
-fi
 
-if [[ -n "${disks}"   ]]; then
-	IFS_OLD=$IFS
-	IFS=","; declare -a disks=($2)
-	IFS=$IFS_OLD
-fi
+for i in "$@"
+do
+case $i in
+    -h|--help)
+    HELP=y
+    echo ""
+    helper
+    exit 0
+    ;;
+    -c|--clean)
+    CLEAN=y
+    shift # past argument=value
+    ;;
+    -i|--install)
+    INSTALL=y
+    shift # past argument=value
+    ;;
+    -d=*|--disk=*)
+    DISK="${i#*=}"
+    shift # past argument=value
+    ;;
+    -v|--version)
+    VERSION=y
+    echo ""
+    echo $version
+    exit 0
+    ;;
+    *)
+    tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
+    echo ""
+    helper
+    exit 1          # unknown option
+    ;;
+esac
+done
 
-if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]}" || -z "${disks[4]}" ]] && [[ "$configuration" == "--create" ]]; then
+function check_and_parse_disks {
+IFS_OLD=$IFS
+IFS=","; disks=( $DISK ) #create array seen outside of the function. In some case of the lvm and raid function we are using it. Needs to be reviwed.
+IFS=$IFS_OLD
+
+if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]}" || -z "${disks[4]}" ]] && [[ -n $INSTALL || -n $CLEAN ]]; then
         echo "You have not specified all 5 needed disks for default partition creation. You have the following disks:"
         echo "${disks[0]}"
         echo "${disks[1]}"
@@ -82,21 +98,12 @@ for i in ${disks[@]}
         capacity=`blockdev --getsz $i` # gets size of the disk in the 512 block size
         block_size="512" # see before. We gets 512 block size
         disk_size+=(`blockdev --getsz $i`)
-        partition_size=$(($capacity*$block_size/1024/7))
-        #echo partition size is : $partition_size
+        partition_size=$(($capacity*$block_size/1024/7))  
         size+=($partition_size)
-	    : '
-	    disk_cut=$(echo $i | cut -d"/" -f3)
-        capacity=`cat /sys/block/$disk_cut/size`
-        block_size=`cat /sys/block/sdb/queue/physical_block_size`
-        disk_size+=(`cat /sys/block/$disk_cut/size`)
-        partition_size=$(($capacity*$block_size/1024/7))
-        #echo partition size is : $partition_size
-        size+=($partition_size)
-		'
     done
+}
 
-if [[ -n "${disks}" && "$configuration" == "--clean" ]]; then
+function clean_disks {
 
 umount /mnt/$(echo ${disks[0]}1 | cut -d"/" -f3)_ext3
 rm -rf /mnt/$(echo ${disks[0]}1 | cut -d"/" -f3)_ext3
@@ -206,23 +213,17 @@ partprobe >> /dev/null 2>&1
 
 echo "Clean has been completed"
 
-exit 0
-
-fi
+}
 
 
-
-
-if [[ "${disk_size[0]}" < "10737418240" || "${disk_size[1]}" < "10737418240" || "${disk_size[2]}" < "10737418240" || "${disk_size[3]}" < "10737418240" || "${disk_size[4]}" < "10737418240" ]]; then
-	echo "Not all disks have needed size : 10737418240"
-	echo ""
-	echo ${disks[0]} : ${disk_size[0]}
-	echo ${disks[1]} : ${disk_size[1]}
-	echo ${disks[2]} : ${disk_size[2]}
-	echo ${disks[3]} : ${disk_size[3]}
-	echo ${disks[4]} : ${disk_size[4]}
-	exit 1
-fi
+function activate_disks {
+    	for i in `ls /sys/class/scsi_host/`; do
+       		exists=`grep mpt /sys/class/scsi_host/$i/proc_name`
+		if [[ ! -z $exists ]]; then
+			echo "- - -" > /sys/class/scsi_host/$i/scan
+		fi
+	done
+}
 
 function ext2_check {
 
@@ -240,7 +241,34 @@ else
         tput setaf 3; echo "mount of the ext2 partition is skipped. We do not support it for kernels less $ext2_min_version"; tput sgr0
 	return 1 # False
 fi
+}
 
+function needed_packages {
+if [ "`rpm -? >> /dev/null 2>&1; echo $?`" == "0" ]; then
+	pacman="rpm -qa"
+else
+	pacman="dpkg --list"
+fi
+
+if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
+	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc"
+	echo ""
+	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc'
+	exit 1
+fi
+}
+
+function needed_disk_size {
+if [[ "${disk_size[0]}" < "10737418240" || "${disk_size[1]}" < "10737418240" || "${disk_size[2]}" < "10737418240" || "${disk_size[3]}" < "10737418240" || "${disk_size[4]}" < "10737418240" ]]; then
+	echo "Not all disks have minimum needed size : 10737418240"
+	echo ""
+	echo ${disks[0]} : ${disk_size[0]}
+	echo ${disks[1]} : ${disk_size[1]}
+	echo ${disks[2]} : ${disk_size[2]}
+	echo ${disks[3]} : ${disk_size[3]}
+	echo ${disks[4]} : ${disk_size[4]}
+	exit 1
+fi
 }
 
 
@@ -258,18 +286,18 @@ function disk_primary_partitions_create {
    	disk[3]="${disks[2]}"
 	disk[4]="${disks[3]}"
 	disk[5]="${disks[4]}"
-#	echo "===================================="
-#	echo ${disk_partition_sectors[1]}
-#	echo ${disk_partition_sectors[2]}
-#        echo ${disk_partition_sectors[3]}
-#        echo ${disk_partition_sectors[4]}
-#        echo ${disk_partition_sectors[5]}
+	echo "===================================="
+	echo ${disk_partition_sectors[1]}
+	echo ${disk_partition_sectors[2]}
+        echo ${disk_partition_sectors[3]}
+        echo ${disk_partition_sectors[4]}
+        echo ${disk_partition_sectors[5]}
 
 	for m in 1 2 3
 	do
 		for i in {1..3}
 		do
-			#echo "${disk_partition_sectors[$m]}"
+			echo "${disk_partition_sectors[$m]}"
 			(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 			sleep 0.2
 
@@ -287,16 +315,147 @@ function disk_primary_partitions_create {
 	done
 }
 
+function mkfs_primary_first_disk {
+	echo "I am here"
+	declare -A disk=();
+	disk[1]="${disks[0]}"
+	echo ${disk[1]}
+	mkfs.ext3 -F "${disk[1]}1"
+	mkdir /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
+	mount "${disk[1]}1" /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
 
-disk_primary_partitions_create
+
+	mkfs.ext4 -F "${disk[1]}2"
+	mkdir /mnt/$(echo "${disk[1]}2" | cut -d"/" -f3)_ext4
+	mount "${disk[1]}2" /mnt/$(echo "${disk[1]}2" | cut -d"/" -f3)_ext4
+
+
+	mkfs.xfs -f "${disk[1]}3"
+	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
+	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
+
+    if ext2_check; then
+	   	mkfs.ext2 -F "${disk[1]}5"
+	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
+	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
+    fi
+	mkfs.btrfs -f "${disk[1]}6"
+	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
+	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
+
+
+	mkfs.ext4 -b 2052 -F "${disk[1]}7"
+	mkdir /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
+	mount "${disk[1]}7" /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
+}
+
+function raid_partition {
+
+
+declare -A disk_partition_sectors=();
+disk_partition_sectors[4]="${size[3]}";
+disk_partition_sectors[5]="${size[4]}";
+
+declare -A disk=();
+disk[4]="${disks[3]}"
+disk[5]="${disks[4]}"
+for m in 4 5
+do
+	for i in {1..3}
+	do
+		echo "${disk_partition_sectors[$m]}"
+		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		sleep 0.5
+
+	done
+	
+	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+	
+	for i in {5..7}
+	do
+		(echo n; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		sleep 0.5
+	done
+
+	(echo n; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+done
+partprobe
+
+for i in 1 2 3 5
+do
+    wipefs -a ${disks[3]}$i
+    wipefs -a ${disks[4]}$i
+    mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
+done
+
+RAID=() # create an array with the list of the created raids
+
+mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 ${disks[3]}1 ${disks[4]}1
+if [ -b /dev/md/md0-linear_0 ]; then
+	mdadm --assemble --verbose /dev/md/md0-linear_0 ${disks[3]}1 ${disks[4]}1
+	mkdir /mnt/md0-linear_0
+	RAID+=('md0-linear_0')
+else
+	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
+fi
+
+partprobe
+mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 ${disks[3]}2 ${disks[4]}2
+
+if [ -b /dev/md/md0-stripe_0 ]; then
+	mdadm --assemble --verbose /dev/md/md0-stripe_0 ${disks[3]}2 ${disks[4]}2
+	mkdir /mnt/md0-stripe_0
+	RAID+=('md0-stripe_0')
+else
+	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
+fi
+
+partprobe
+yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 ${disks[3]}3 ${disks[4]}3
+
+if [ -b /dev/md/md0-mirror_0 ]; then
+	mdadm --assemble /dev/md/md0-mirror_0 ${disks[3]}3 ${disks[4]}3
+	mkdir /mnt/md0-mirror_0
+	RAID+=('md0-mirror_0')
+else
+	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device
+fi
+
+
+yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
+if [ -b /dev/md/md5 ]; then
+    (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/md/md5
+	mkdir /mnt/md5p1
+	RAID+=('md5p1')
+else
+    echo /dev/md/md5 was not created. Skipped assemble of this device.
+fi
+
+partprobe
+
+if [ -e /etc/mdadm/mdadm.conf ]; then
+	mdadm --detail --scan >> /etc/mdadm/mdadm.conf
+fi
+
+if [ -e /etc/mdadm.conf ]; then
+	mdadm --detail --scan >> /etc/mdadm.conf
+fi
+
+for raid in ${RAID[@]}; do
+	if [ "$raid" != "md5" ]; then
+	    mkfs.ext4 -F /dev/md/$raid
+	    mount /dev/md/$raid /mnt/$raid
+	fi
+done
+}
 
 function lvm_partitions_create {
 	declare -A disk=();
-        disk[1]="${disks[0]}"
+	disk[1]="${disks[0]}"
 	disk[2]="${disks[1]}"
 	disk[3]="${disks[2]}"
 	disk[4]="${disks[3]}"
-        disk[5]="${disks[4]}"
+	disk[5]="${disks[4]}"
 
 
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
@@ -394,146 +553,6 @@ function lvm_partitions_create {
 
 }
 
-function mkfs_primary_first_disk {
-
-declare -A disk=();
-	disk[1]="${disks[0]}"
-	mkfs.ext3 -F "${disk[1]}1"
-	mkdir /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
-	mount "${disk[1]}1" /mnt/$(echo "${disk[1]}1" | cut -d"/" -f3)_ext3
-
-
-	mkfs.ext4 -F "${disk[1]}2"
-	mkdir /mnt/$(echo "${disk[1]}2" | cut -d"/" -f3)_ext4
-	mount "${disk[1]}2" /mnt/$(echo "${disk[1]}2" | cut -d"/" -f3)_ext4
-
-
-	mkfs.xfs -f "${disk[1]}3"
-	mkdir /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
-	mount "${disk[1]}3" /mnt/$(echo "${disk[1]}3" | cut -d"/" -f3)_xfs
-
-    if ext2_check; then
-	   	mkfs.ext2 -F "${disk[1]}5"
-	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
-    fi
-	mkfs.btrfs -f "${disk[1]}6"
-	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
-	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
-
-
-	mkfs.ext4 -b 2052 -F "${disk[1]}7"
-	mkdir /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
-	mount "${disk[1]}7" /mnt/$(echo "${disk[1]}7" | cut -d"/" -f3)_ext4_unaligned
-}
-
-mkfs_primary_first_disk
-
-
-function raid_partition {
-
-
-declare -A disk_partition_sectors=();
-disk_partition_sectors[4]="${size[3]}";
-disk_partition_sectors[5]="${size[4]}";
-
-declare -A disk=();
-disk[4]="${disks[3]}"
-disk[5]="${disks[4]}"
-for m in 4 5
-do
-	for i in {1..3}
-	do
-		#echo "${disk_partition_sectors[$m]}"
-		(echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
-		sleep 0.5
-
-	done
-	
-	(echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
-	
-	for i in {5..7}
-	do
-		(echo n; echo ; echo "+""${disk_partition_sectors[$m]}""K"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
-		sleep 0.5
-	done
-
-	(echo n; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
-done
-partprobe
-
-for i in 1 2 3 5
-do
-    wipefs -a ${disks[3]}$i
-    wipefs -a ${disks[4]}$i
-    mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
-done
-
-RAID=() # create an array with the list of the created raids
-
-mdadm --create --verbose /dev/md/md0-linear_0 --level=linear --raid-devices=2 ${disks[3]}1 ${disks[4]}1
-if [ -b /dev/md/md0-linear_0 ]; then
-	mdadm --assemble --verbose /dev/md/md0-linear_0 ${disks[3]}1 ${disks[4]}1
-	mkdir /mnt/md0-linear_0
-	RAID+=('md0-linear_0')
-else
-	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
-fi
-
-partprobe
-mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 ${disks[3]}2 ${disks[4]}2
-
-if [ -b /dev/md/md0-stripe_0 ]; then
-	mdadm --assemble --verbose /dev/md/md0-stripe_0 ${disks[3]}2 ${disks[4]}2
-	mkdir /mnt/md0-stripe_0
-	RAID+=('md0-stripe_0')
-else
-	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
-fi
-
-partprobe
-yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 ${disks[3]}3 ${disks[4]}3
-
-if [ -b /dev/md/md0-mirror_0 ]; then
-	mdadm --assemble /dev/md/md0-mirror_0 ${disks[3]}3 ${disks[4]}3
-	mkdir /mnt/md0-mirror_0
-	RAID+=('md0-mirror_0')
-else
-	echo /dev/md/md0-mirror_0 was not created. Skipped assemble of this device
-fi
-
-
-yes | mdadm --create --verbose /dev/md/md5 --level=1 --raid-devices=2 ${disks[3]}5 ${disks[4]}5
-if [ -b /dev/md/md5 ]; then
-    (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk /dev/md/md5
-	mkdir /mnt/md5p1
-	RAID+=('md5p1')
-else
-    echo /dev/md/md5 was not created. Skipped assemble of this device.
-fi
-
-partprobe
-
-if [ -e /etc/mdadm/mdadm.conf ]; then
-	mdadm --detail --scan >> /etc/mdadm/mdadm.conf
-fi
-
-if [ -e /etc/mdadm.conf ]; then
-	mdadm --detail --scan >> /etc/mdadm.conf
-fi
-
-for raid in ${RAID[@]}; do
-	if [ "$raid" != "md5" ]; then
-	    mkfs.ext4 -F /dev/md/$raid
-	    mount /dev/md/$raid /mnt/$raid
-	fi
-done
-}
-raid_partition
-lvm_partitions_create
-
-
-
 function fstab {
 IFS_OLD=$IFS
 IFS=$'\n'
@@ -548,7 +567,54 @@ IFS=$IFS_OLD
 mount -a
 }
 
-fstab
+
+if [[ -z $INSTALL && -z $CLEAN ]] && [[ -n $DISK ]]; then
+	tput setaf 1; echo "ERROR: No command specified for the devices"; tput sgr0 
+	echo ""
+	helper
+	exit 1
+fi
+
+if [[ -n $INSTALL || -n $CLEAN ]] && [[ -z $DISK ]]; then
+        tput setaf 1; echo "ERROR: You have not specified devices"; tput sgr0
+        echo ""
+        helper
+        exit 1
+fi
+
+
+if [[ -n $DISK && -n $CLEAN ]]; then
+	check_and_parse_disks
+	clean_disks
+	exit 0
+fi
+
+if [[ -n $DISK && -n $INSTALL ]]; then
+	activate_disks
+	echo "1/10"
+	check_and_parse_disks
+	echo "2/10"
+	needed_packages
+	echo "3/10"
+	needed_disk_size
+	echo "4/10"
+	ext2_check
+	echo "5/10"
+	disk_primary_partitions_create >/dev/null 2>&1
+	echo "6/10"
+	mkfs_primary_first_disk >/dev/null 2>&1
+	echo "7/10"
+	raid_partition >/dev/null 2>&1
+	echo "8/10"
+	lvm_partitions_create >/dev/null 2>&1
+	echo "9/10"
+	fstab
+	echo "10/10"
+	echo "COMPLETED"
+	exit 0
+fi
+
+
 : '
 Partition table  should have the following view:
 We should have 5 disks
@@ -615,7 +681,7 @@ sde                                            8:64   0   10G  0 disk
 ├─sde4                                         8:68   0  512B  0 part
 ├─sde5                                         8:69   0  1,4G  0 part
 │ └─md124                                      9:124  0  1,4G  0 raid1
-│   └─md124p1                                259:0    0  1,4G  0 md
+│   └─md124p1                                259:0    0  1,4G  0 md    /mnt/md5p1
 ├─sde6                                         8:70   0  1,4G  0 part
 │ └─pool-lvmpool_tdata                       253:21   0  4,3G  0 lvm
 │   └─pool-lvmpool-tpool                     253:22   0  4,3G  0 lvm
