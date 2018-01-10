@@ -162,7 +162,7 @@ do
 	vgremove -f $i
 done
 
-list_raid=(/dev/md/md0-linear_0 /dev/md/md0-stripe_0 /dev/md/md0-mirror_0 /dev/md/md5p1)
+list_raid=($(ls -la /dev/md/ | grep 'linear_0\|stripe_0\|mirror_0\|md5p1' | awk '{print $9}'))
 list_inc=(1 2 3 5) #list of the partitions used for the raid
 k=0
 for i in ${list_raid[@]}
@@ -559,6 +559,10 @@ IFS=$'\n'
 set -o noglob
 fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm' | awk '{print $1,$2,$3}'))
 for ((i = 0; i < ${#fstab[@]}; i++)); do
+	if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
+                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
+               
+    fi
 	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
 done
 
