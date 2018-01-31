@@ -109,8 +109,6 @@ package="rpm"
 installed="rpm -qa"
 fi
 
-echo $operator
-
 /etc/init.d/rapidrecovery-agent stop 1>&2 2>/dev/null
 systemctl stop repidrecovery-agent 1>&2 2>/dev/null
 rmmod rapidrecovery-vss 1>&2 2>/dev/null
@@ -242,7 +240,6 @@ $list | grep 'rapid\|nbd\|dkms'
 
 function install_repo {
 get_installation_info
-echo ${#BRANCH}
 if [ "${#BRANCH}" -gt "5" ]
 then 
 	$install $BRANCH

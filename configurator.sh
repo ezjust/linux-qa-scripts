@@ -1,8 +1,19 @@
 #!/bin/bash
 #set -x
-version="1.0.0"
+version="1.0.2"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
+
+
+check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w ver | cut -d= -f2`
+
+if [[ $check_version != $ver ]]; then
+	echo "There is newest version on the GitHub"
+	echo "You are running the $ver version of the script"
+	echo "There is available the $check_version version on the GitHub"
+	exit 1
+fi
+
 
 function helper {
 
@@ -162,7 +173,7 @@ do
 	vgremove -f $i
 done
 
-list_raid=($(ls -la /dev/md/ | grep 'linear_0\|stripe_0\|mirror_0\|md5p1' | awk '{print $9}'))
+list_raid=($(mdadm --detail -scan | grep 'linear_0\|stripe_0\|mirror_0\|md5p1\|md5' | awk '{print $2}'))
 list_inc=(1 2 3 5) #list of the partitions used for the raid
 k=0
 for i in ${list_raid[@]}
