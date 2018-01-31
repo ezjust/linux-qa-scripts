@@ -7,7 +7,7 @@ ignore="/dev/null 2>&1"
 
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2`
 
-if [[ $check_version != $ver ]]; then
+if [[ "$check_version" != "$ver" ]]; then
 	tput setaf 4; echo "There is newest version on the GitHub"; tput sgr0
 	echo "You are running the $version version of the script"
 	echo "There is available the $check_version version on the GitHub"
