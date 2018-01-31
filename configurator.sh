@@ -1,11 +1,11 @@
 #!/bin/bash
 #set -x
-version="1.0.2"
+version="1.0.3"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
 
-check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2`
+check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2 | tr -d '"'`
 
 if [[ "$check_version" != "$ver" ]]; then
 	tput setaf 4; echo "There is newest version on the GitHub"; tput sgr0
