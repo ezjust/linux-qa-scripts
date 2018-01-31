@@ -164,7 +164,7 @@ list_devices=(
 
 for i in ${list_devices[@]}
 do
-	wipefs -a $i
+	wipefs --force --all $i
 	lvremove -f $i
 done
 
@@ -180,8 +180,8 @@ for i in ${list_raid[@]}
 do
 	mdadm --stop $i
 	mdadm --zero-superblock ${disks[3]}${list_inc[$k]} ${disks[4]}${list_inc[$k]}
-	wipefs -a ${disks[3]}${list_inc[$k]}
-	wipefs -a ${disks[4]}${list_inc[$k]}
+	wipefs --force --all ${disks[3]}${list_inc[$k]}
+	wipefs --force --all ${disks[4]}${list_inc[$k]}
 	mdadm --remove $i
 	let k=$k+1
 done
@@ -198,23 +198,23 @@ partprobe
 
 		(echo d; echo $i; echo w;) | fdisk ${disks[0]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs -a ${disks[0]}$i
+		wipefs --force --all ${disks[0]}$i
                 #umount $disk2$i
                 (echo d; echo $i; echo w;) | fdisk ${disks[1]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs -a ${disks[1]}$i
+		wipefs --force --all ${disks[1]}$i
 		#umount $disk3$i
 	        (echo d; echo $i; echo w;) | fdisk ${disks[2]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs -a ${disks[2]}$i
+		wipefs --force --all ${disks[2]}$i
 		#umount $disk4$i
 		(echo d; echo $i; echo w;) | fdisk ${disks[3]} >> /dev/null 2>&1
 	        sleep 0.2
-		wipefs -a ${disks[3]}$i
+		wipefs --force --all ${disks[3]}$i
 		#umount $disk5$i
 		(echo d; echo $i; echo w;) | fdisk ${disks[4]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs -a ${disks[4]}$i
+		wipefs --force --all ${disks[4]}$i
 	done
 
 sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4\|md5p1\|thinlvm/d' /etc/fstab
@@ -394,8 +394,8 @@ partprobe
 
 for i in 1 2 3 5
 do
-    wipefs -a ${disks[3]}$i
-    wipefs -a ${disks[4]}$i
+    wipefs --force --all ${disks[3]}$i
+    wipefs --force --all ${disks[4]}$i
     mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
 done
 
@@ -472,7 +472,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
 	vgcreate linear_xfs "${disk[2]}1" "${disk[3]}1"
 	lvcreate -Zy -l 100%VG -n linear_xfs linear_xfs
-	wipefs -a /dev/linear_xfs/linear_xfs
+	wipefs --force --all /dev/linear_xfs/linear_xfs
 	linear_xfs=/dev/linear_xfs/linear_xfs
 	mkdir /mnt/linear_xfs; linear_xfs_mp=/mnt/linear_xfs
 	sleep 0.2
@@ -482,7 +482,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}5" "${disk[3]}5"
 	vgcreate linear_ext4 "${disk[2]}5" "${disk[3]}5"
 	lvcreate -Zy -l 100%VG -n linear_ext4 linear_ext4
-	wipefs -a /dev/linear_ext4/linear_ext4
+	wipefs --force --all /dev/linear_ext4/linear_ext4
 	linear_ext4=/dev/linear_ext4/linear_ext4
 	mkdir /mnt/linear_ext4; linear_ext4_mp=/mnt/linear_ext4
 	sleep 0.2
@@ -493,7 +493,7 @@ function lvm_partitions_create {
 	vgcreate striped_xfs "${disk[2]}2" "${disk[3]}2"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_xfs striped_xfs
 	striped_xfs=/dev/striped_xfs/striped_xfs
-	wipefs -a "$striped_xfs"
+	wipefs --force --all "$striped_xfs"
 	mkdir /mnt/striped_xfs; striped_xfs_mp=/mnt/striped_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/striped_xfs/striped_xfs
@@ -503,7 +503,7 @@ function lvm_partitions_create {
 	vgcreate striped_ext4 "${disk[2]}6" "${disk[3]}6"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_ext4 striped_ext4
 	striped_ext4=/dev/striped_ext4/striped_ext4
-	wipefs -a "$striped_ext4"
+	wipefs --force --all "$striped_ext4"
 	mkdir /mnt/striped_ext4; striped_ext4_mp=/mnt/striped_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/striped_ext4/striped_ext4
@@ -517,7 +517,7 @@ function lvm_partitions_create {
                 lvcreate -Zy -l 50%VG -m1 --mirrorlog core -n mirrored_xfs mirrored_xfs
         fi
         mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
-	wipefs -a "$mirrored_xfs"
+	wipefs --force --all "$mirrored_xfs"
 	mkdir /mnt/mirrored_xfs; mirrored_xfs_mp=/mnt/mirrored_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/mirrored_xfs/mirrored_xfs
@@ -531,7 +531,7 @@ function lvm_partitions_create {
 	        lvcreate -Zy -l 50%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
 	fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
-	wipefs -a "$mirrored_ext4"
+	wipefs --force --all "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
@@ -545,7 +545,7 @@ function lvm_partitions_create {
 	if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
         	lvcreate --type mirror -l 33%VG -m 1 -n mirror_separate mirror_separate
 	fi
-	wipefs -a /dev/mirror_separate/mirror_separate >> /dev/null 2>&1;
+	wipefs --force --all /dev/mirror_separate/mirror_separate >> /dev/null 2>&1;
 	mkdir /mnt/mirror_separate
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirror_separate/mirror_separate
@@ -555,9 +555,9 @@ function lvm_partitions_create {
         pvcreate "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
         vgcreate pool "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
         lvcreate -l 100%VG -T pool/lvmpool
-        wipefs -a /dev/mapper/lvmpool >> /dev/null 2>&1;
+        wipefs --force --all /dev/mapper/lvmpool >> /dev/null 2>&1;
         lvcreate -V100G -T pool/lvmpool -n thinlvm
-        wipefs -a /dev/mapper/pool-thinlvm
+        wipefs --force --all /dev/mapper/pool-thinlvm
         mkfs.xfs -f /dev/mapper/pool-thinlvm
         mkdir /mnt/thinlvm
         #mount /dev/mapper/pool-thinlvm /mnt/thinlvm/
