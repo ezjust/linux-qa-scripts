@@ -5,7 +5,7 @@ ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
 
-check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w ver | cut -d= -f2`
+check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2`
 
 if [[ $check_version != $ver ]]; then
 	echo "There is newest version on the GitHub"
