@@ -454,7 +454,7 @@ fi
 
 for raid in ${RAID[@]}; do
 	if [ "$raid" != "md5" ]; then
-	    mkfs.ext4 -F /dev/md/$raid
+	    mkfs.xfs -f /dev/md/$raid
 	    mount /dev/md/$raid /mnt/$raid
 	fi
 done
