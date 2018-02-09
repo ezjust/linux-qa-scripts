@@ -355,7 +355,7 @@ else
 	pacman="dpkg --list"
 fi
 
-if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep thin-provisioning-tools >> /dev/null; echo $?`" -ne "0" ]]; then
+if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
 	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc, thin-provisioning-tools"
 	echo ""
 	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc\|thin-provisioning-tools'
