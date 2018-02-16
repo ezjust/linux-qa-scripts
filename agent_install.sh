@@ -169,7 +169,7 @@ operator="apt-get"
 list="dpkg -l"
 install="dpkg -i"
 os="debian"
-	if [[ `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "17"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "16"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "15" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "9" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "8" ]]; then
+	if [[ `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "18"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "17"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "16"  || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "15" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "9" || `cat /etc/os-release | grep VERSION_ID | awk -F '["/.]' '{print $2}'` -eq "8" ]]; then
 	version="8"
 	fi
 	
