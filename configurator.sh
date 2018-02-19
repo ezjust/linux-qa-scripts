@@ -21,10 +21,12 @@ tput setaf 4;	echo "You are in the HELP MENU:"; tput sgr0
 		echo ""
 tput setaf 2;   echo "--install/-i     - to create default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --install --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
-		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces.
+		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces, 
+		echo -e "       or use "default" array of disks --disk=\e[33mdefault\e[0m in this case configurator will use such disk letters - sdb,sdc,sdd,sde,sdf"
 		echo ""
 tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+		echo -e "       or ./configurator.sh --clean --disk=\e[33mdefault\e[0m to use default array of disks"
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
@@ -89,6 +91,18 @@ case $i in
     ;;
 esac
 done
+
+if [[ -n $DISK && $DISK -eq "default" ]]; then
+	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
+	while true; do
+    		read -p "${DISK[@]}"$' - \e[33mdisks data will be removed\e[0m, proceed? Please answer \"y\" or \"n\": ' yn
+    		case $yn in
+        		[Yy]* ) echo "Processing..."; break;;
+        		[Nn]* ) exit 0;;
+        		* ) echo "Please answer \"y\" or \"n\"";;
+    		esac
+	done
+fi
 
 function check_and_parse_disks {
 IFS_OLD=$IFS
