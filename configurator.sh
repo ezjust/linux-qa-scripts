@@ -21,10 +21,12 @@ tput setaf 4;	echo "You are in the HELP MENU:"; tput sgr0
 		echo ""
 tput setaf 2;   echo "--install/-i     - to create default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --install --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
-		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces.
+		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces, 
+		echo "       or use "default" array of disks --disk=default in this case configurator will use such disk letters - sdb,sdc,sdd,sde,sdf"
 		echo ""
 tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
+		echo "       or ./configurator.sh --clean --disk=default to use default array of disks"
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
@@ -91,6 +93,11 @@ esac
 done
 
 function check_and_parse_disks {
+
+if [[ $DISK -eq "default" ]]; then
+   	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
+fi
+
 IFS_OLD=$IFS
 IFS=","; disks=( $DISK ) #create array seen outside of the function. In some case of the lvm and raid function we are using it. Needs to be reviwed.
 IFS=$IFS_OLD
