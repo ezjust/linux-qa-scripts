@@ -94,7 +94,7 @@ done
 
 function check_and_parse_disks {
 
-if [[ -n $DISK && $DISK -eq "default" ]]; then
+if [[ $DISK -eq "default" ]]; then
    	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
 fi
 
