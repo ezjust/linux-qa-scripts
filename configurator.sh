@@ -4,7 +4,6 @@ version="1.1.0"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
-<<EOF
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2 | tr -d '"'`
 
 if [[ "$check_version" != "$version" ]]; then
@@ -13,7 +12,6 @@ if [[ "$check_version" != "$version" ]]; then
 	echo "There is available the $check_version version on the GitHub"
 	exit 1
 fi
-EOF
 
 function helper {
 
