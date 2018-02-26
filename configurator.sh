@@ -4,7 +4,7 @@ version="1.1.0"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
-
+<<EOF
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2 | tr -d '"'`
 
 if [[ "$check_version" != "$version" ]]; then
@@ -13,7 +13,7 @@ if [[ "$check_version" != "$version" ]]; then
 	echo "There is available the $check_version version on the GitHub"
 	exit 1
 fi
-
+EOF
 
 function helper {
 
@@ -74,7 +74,7 @@ case $i in
     shift # past argument=value
     ;;
     -d=*|--disk=*)
-    DISK="${i#*=}"
+    DISK=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
     shift # past argument=value
     ;;
     -v|--version)
@@ -88,7 +88,7 @@ case $i in
     shift
     ;;
     -f=*|--format=*)
-    FORMAT="${i#*=}"
+    FORMAT=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
     shift # past argument=value
     ;;
     *)	
@@ -102,7 +102,7 @@ done
 
 function check_and_parse_disks {
 
-if [[ $(echo $DISK | tr '[:upper:]' '[:lower:]') = "default" ]]; then
+if [[ $DISK = "default" ]]; then
    	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
 fi
 
@@ -116,7 +116,7 @@ if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]
         echo "${disks[1]}"
         echo "${disks[2]}"
         echo "${disks[3]}"
-        echo "${disks[4]}"
+	        echo "${disks[4]}"
         exit 1
 fi
 
@@ -820,31 +820,27 @@ function extended {
 
 }
 
-if [[ $(echo $FORMAT | tr '[:upper:]' '[:lower:]') = "uuid" ]]; then
-     function fstab {
-     mounts=(`cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1}' | tr '\n' ' '`)
-     for i in "${mounts[@]}"; do
-       	uuid=$(blkid -o export $i | grep "^UUID=")
-       	mpoint=$(cat /proc/mounts | grep $i | awk '{print $2,$3}' | awk '{ print $0" defaults 0 0"}')
-       	echo -e "$uuid $mpoint\n" >> /etc/fstab
-     done
-     }
-else
      function fstab {
      IFS_OLD=$IFS
      IFS=$'\n'
      set -o noglob
-     fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
-     for ((i = 0; i < ${#fstab[@]}; i++)); do
-	if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
+     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
+     	for ((i = 0; i < ${#fstab[@]}; i++)); do
+	 if [[ $FORMAT = "uuid" ]]; then
+	    exp=$(echo ${fstab[$i]} | awk -F " " '{print $1}')
+            uuid=$(blkid -o export $exp | grep "^UUID=") 
+	    mpfs=$(echo ${fstab[$i]} | awk -F " " '{print $2,$3}') 
+	    echo $uuid $mpfs defaults 0 0 >> /etc/fstab
+	 else
+	    if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
             fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-        fi
-     echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-     done
+            fi
+	    echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
+	 fi
+     	done
      IFS=$IFS_OLD
      mount -a
      }		
-fi
 
 
 if [[ -z $INSTALL && -z $CLEAN && -z $EXTENDED ]] && [[ -n $DISK ]]; then
