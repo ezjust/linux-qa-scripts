@@ -23,12 +23,15 @@ tput setaf 2;   echo "--install/-i     - to create default configuration scheme 
 		echo 	EXAMPLE :   ./configurator.sh --install --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo 	NOTE    :   You need to specify 5 disks in one row, devided by "","" without using spaces, 
 		echo "       or use "default" array of disks --disk=default in this case configurator will use such disk letters - sdb,sdc,sdd,sde,sdf"
-		echo "       use --format=UUID to write notes to fstab by disks UUIDs"
 		echo ""
 tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo "       or ./configurator.sh --clean --disk=default to use default array of disks"
 		echo ""
+                echo "       use -f=UUID or --format=UUID to write notes to fstab by disks UUIDs"
+                echo "       use -v or --version to get version of the script"
+                echo "       use -h or --help to get full help page of this script"
+                echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
 		echo "Please note, that this script has been tested under following OS:
