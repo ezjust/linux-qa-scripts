@@ -83,7 +83,11 @@ case $i in
     EXTENDED=y
     shift
     ;;
-    *)
+    -f=*|--format=*)
+    FORMAT="${i#*=}"
+    shift # past argument=value
+    ;;
+    *)	
     tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
     echo ""
     helper
@@ -94,7 +98,7 @@ done
 
 function check_and_parse_disks {
 
-if [[ $DISK -eq "default" ]]; then
+if [[ $(echo $DISK | tr '[:upper:]' '[:lower:]') = "default" ]]; then
    	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
 fi
 
@@ -812,24 +816,31 @@ function extended {
 
 }
 
-
-function fstab {
-IFS_OLD=$IFS
-IFS=$'\n'
-set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
-for ((i = 0; i < ${#fstab[@]}; i++)); do
+if [[ $(echo $FORMAT | tr '[:upper:]' '[:lower:]') = "uuid" ]]; then
+     function fstab {
+     mounts=(`cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1}' | tr '\n' ' '`)
+     for i in "${mounts[@]}"; do
+       	uuid=$(blkid -o export $i | grep "^UUID=")
+       	mpoint=$(cat /proc/mounts | grep $i | awk '{print $2,$3}' | awk '{ print $0" defaults 0 0"}')
+       	echo -e "$uuid $mpoint\n" >> /etc/fstab
+     done
+     }
+else
+     function fstab {
+     IFS_OLD=$IFS
+     IFS=$'\n'
+     set -o noglob
+     fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
+     for ((i = 0; i < ${#fstab[@]}; i++)); do
 	if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-               
-    fi
-	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-done
-
-IFS=$IFS_OLD
-
-mount -a
-}
+            fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
+        fi
+     echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
+     done
+     IFS=$IFS_OLD
+     mount -a
+     }		
+fi
 
 
 if [[ -z $INSTALL && -z $CLEAN && -z $EXTENDED ]] && [[ -n $DISK ]]; then
