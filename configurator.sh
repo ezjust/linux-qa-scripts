@@ -4,7 +4,6 @@ version="1.1.1"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
-
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2 | tr -d '"'`
 
 if [[ "$check_version" != "$version" ]]; then
@@ -13,7 +12,6 @@ if [[ "$check_version" != "$version" ]]; then
 	echo "There is available the $check_version version on the GitHub"
 	exit 1
 fi
-
 
 function helper {
 
@@ -28,6 +26,10 @@ tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme 
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo "       or ./configurator.sh --clean --disk=default to use default array of disks"
 		echo ""
+                echo "       use -f=UUID or --format=UUID to write notes to fstab by disks UUIDs"
+                echo "       use -v or --version to get version of the script"
+                echo "       use -h or --help to get full help page of this script"
+                echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
 		echo "Please note, that this script has been tested under following OS:
@@ -70,7 +72,7 @@ case $i in
     shift # past argument=value
     ;;
     -d=*|--disk=*)
-    DISK="${i#*=}"
+    DISK=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
     shift # past argument=value
     ;;
     -v|--version)
@@ -83,7 +85,11 @@ case $i in
     EXTENDED=y
     shift
     ;;
-    *)
+    -f=*|--format=*)
+    FORMAT=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
+    shift # past argument=value
+    ;;
+    *)	
     tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
     echo ""
     helper
@@ -94,7 +100,7 @@ done
 
 function check_and_parse_disks {
 
-if [[ $DISK -eq "default" ]]; then
+if [[ $DISK = "default" ]]; then
    	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
 fi
 
@@ -108,7 +114,7 @@ if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]
         echo "${disks[1]}"
         echo "${disks[2]}"
         echo "${disks[3]}"
-        echo "${disks[4]}"
+	        echo "${disks[4]}"
         exit 1
 fi
 
@@ -812,32 +818,33 @@ function extended {
 
 }
 
+     function fstab {
+     IFS_OLD=$IFS
+     IFS=$'\n'
+     set -o noglob
+     
+     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
+     	for ((i = 0; i < ${#fstab[@]}; i++)); do
+      	if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" `]]; then
 
-function fstab {
-IFS_OLD=$IFS
-IFS=$'\n'
-set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
-for ((i = 0; i < ${#fstab[@]}; i++)); do
-	if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" `]]; then
-
-		if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-	                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-	               
-	    fi
-		if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-	                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-	               
-	    fi
-
-		echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-	fi
-done
-
-IFS=$IFS_OLD
-
-mount -a
-}
+           if [[ $FORMAT = "uuid" ]]; then
+              exp=$(echo ${fstab[$i]} | awk '{print $1}')
+              uuid=$(blkid -o export $exp | grep "^UUID=") 
+              mpfs=$(echo ${fstab[$i]} | awk '{print $2,$3}') 
+              echo $uuid $mpfs defaults 0 0 >> /etc/fstab
+           else
+              if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
+                    fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
+              fi
+              echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
+           fi
+          
+          fi
+     	done
+     
+     IFS=$IFS_OLD
+     mount -a
+     }		
 
 
 if [[ -z $INSTALL && -z $CLEAN && -z $EXTENDED ]] && [[ -n $DISK ]]; then
