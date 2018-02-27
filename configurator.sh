@@ -825,8 +825,7 @@ function extended {
      
      fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
      	for ((i = 0; i < ${#fstab[@]}; i++)); do
-      	if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" `]]; then
-
+      	  if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" ` ]]; then
            if [[ $FORMAT = "uuid" ]]; then
               exp=$(echo ${fstab[$i]} | awk '{print $1}')
               uuid=$(blkid -o export $exp | grep "^UUID=") 
