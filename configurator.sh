@@ -4,6 +4,7 @@ version="1.1.1"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
 
+
 check_version=`wget -O- -q https://raw.github.com/mbugaiov/myrepo/master/configurator.sh | head -3 | grep -w version | cut -d= -f2 | tr -d '"'`
 
 if [[ "$check_version" != "$version" ]]; then
@@ -12,6 +13,7 @@ if [[ "$check_version" != "$version" ]]; then
 	echo "There is available the $check_version version on the GitHub"
 	exit 1
 fi
+
 
 function helper {
 
@@ -26,10 +28,6 @@ tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme 
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo "       or ./configurator.sh --clean --disk=default to use default array of disks"
 		echo ""
-                echo "       use -f=UUID or --format=UUID to write notes to fstab by disks UUIDs"
-                echo "       use -v or --version to get version of the script"
-                echo "       use -h or --help to get full help page of this script"
-                echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
 		echo "Please note, that this script has been tested under following OS:
@@ -72,7 +70,7 @@ case $i in
     shift # past argument=value
     ;;
     -d=*|--disk=*)
-    DISK=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
+    DISK="${i#*=}"
     shift # past argument=value
     ;;
     -v|--version)
@@ -85,11 +83,7 @@ case $i in
     EXTENDED=y
     shift
     ;;
-    -f=*|--format=*)
-    FORMAT=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`
-    shift # past argument=value
-    ;;
-    *)	
+    *)
     tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
     echo ""
     helper
@@ -100,7 +94,7 @@ done
 
 function check_and_parse_disks {
 
-if [[ $DISK = "default" ]]; then
+if [[ $DISK -eq "default" ]]; then
    	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
 fi
 
@@ -114,7 +108,7 @@ if [[ -z "${disks[0]}" || -z "${disks[1]}" || -z "${disks[2]}" || -z "${disks[3]
         echo "${disks[1]}"
         echo "${disks[2]}"
         echo "${disks[3]}"
-	        echo "${disks[4]}"
+        echo "${disks[4]}"
         exit 1
 fi
 
@@ -132,6 +126,54 @@ for i in ${disks[@]}
 }
 
 function clean_disk_extended {
+
+umount /mnt/raid*
+mdadm --stop /dev/md/raid*
+
+umount /dev/md/raid4
+rm -rf /mnt/raid4
+mdadm --stop /dev/md/raid4
+mdadm --zero-superblock "${disks[3]}3"
+mdadm --zero-superblock /dev/mapper/striped_vg1_disk5_6_part3_2-striped_lv1_disk5_6_part3_2 
+mdadm --zero-superblock /dev/md/raid5
+mdadm --remove /dev/md/raid4
+partprobe
+
+umount /dev/md/raid10
+rm -rf /mnt/raid10
+mdadm --stop /dev/md/raid10
+mdadm --zero-superblock "${disks[4]}3"
+mdadm --zero-superblock "${disks[4]}5"
+mdadm --zero-superblock "${disks[2]}5"
+mdadm --zero-superblock "${disks[3]}4"
+mdadm --remove /dev/md/raid10
+partprobe
+
+umount /dev/md/raid6
+rm -rf /mnt/raid6
+mdadm --stop /dev/md/raid6
+mdadm --zero-superblock "${disks[2]}2"
+mdadm --zero-superblock "${disks[3]}2"
+mdadm --zero-superblock "${disks[4]}2"
+mdadm --zero-superblock "${disks[2]}3"
+mdadm --remove /dev/md/raid6
+partprobe
+
+
+umount /dev/md/raid5
+rm -rf /mnt/raid5
+mdadm --stop /dev/md/raid5
+mdadm --zero-superblock "${disks[2]}1"
+mdadm --zero-superblock "${disks[3]}1"
+mdadm --zero-superblock "${disks[4]}1"
+mdadm --remove /dev/md/raid5
+cat /proc/mdstat | grep inactive | awk {'print $1'} | xargs mdadm --stop /dev/
+
+partprobe
+
+cat /proc/mdstat | grep inactive | awk {'print $1'} | xargs mdadm --stop /dev/
+mdadm --stop /dev/md/raid*
+
 umount /mnt/md127p2--mirror--md--lvm
 umount /mnt/md-mirror-md-lvm
 mdadm --stop /dev/md/md-mirror-md-lvm
@@ -165,8 +207,23 @@ partprobe
 wipefs --force --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3
 partprobe
 
-mdadm --remove /dev/md/mirror_lvm_part2*
-mdadm --remove /dev/md/linear_lvm_part0*
+mdadm --remove /dev/md/mirror_lvm_part*
+mdadm --remove /dev/md/linear_lvm_part*
+
+mdadm --zero-superblock "${disks[0]}"[12345]
+mdadm --zero-superblock "${disks[1]}"[12345]
+mdadm --zero-superblock "${disks[2]}"[12345]
+mdadm --zero-superblock "${disks[3]}"[12345]
+mdadm --zero-superblock "${disks[4]}"[12345]
+
+for i in `cat /proc/mdstat | grep inactive | awk {'print $1'}`
+do
+	for m in `mdadm --detail /dev/$i | grep /dev/sd | awk {'print $NF'}`
+	do
+	        mdadm --stop /dev/$i
+		mdadm --zero-superblock $m
+	done
+done
 
 list_lvms=(
 /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
@@ -181,8 +238,10 @@ list_lvms=(
 /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
 /dev/mapper/striped_vg2_disk5_6_part5_1-striped_lv2_disk5_6_part5_1
 /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p1
-/dev/mapper/striped_vg1_disk5_6_part3_2-striped_lv1_disk5_6_part3_2p1)
+/dev/mapper/striped_vg1_disk5_6_part3_2-striped_lv1_disk5_6_part3_2p1
 /dev/liner_vg2_disk5_6_part2_3/liner_lv2_disk5_6_part2_3
+)
+
 for i in ${list_lvms[@]}
 do
 	wipefs --force --all $i
@@ -199,6 +258,34 @@ vgremove -ff liner_vg_disk5_6_part1_4
 vgremove -ff liner_vg2_disk5_6_part2_3
 vgremove -ff liner_vg_disk5_6_part1_4
 
+cat /proc/mdstat | grep inactive | awk {'print $1'} | xargs mdadm --stop /dev/
+
+        for m in 0 2 4
+        do
+                for i in 5 4 3 2 1
+                do
+                    (echo d; echo $i; echo w; ) | fdisk ${disks[$m]} >> /dev/null 2>&1
+		    sleep 0.5
+                done
+	partprobe
+        done
+
+        for m in 1 3
+        do
+                for i in 4 3 2 1
+                do
+                    (echo d; echo $i; echo w; echo y;) | gdisk ${disks[$m]}
+		    sleep 0.5
+                done
+        done
+
+
+sed -i.bak '/raid6\|raid10\|raid5\|\|linear_lvm_part\|raid4/d' /etc/mdadm/mdadm.conf
+sed -i.bak '/raid6\|raid10\|raid5\|linear_lvm_part\|raid4/d' /etc/mdadm.conf
+sed -i.bak '/md-mirror-md-lvm\|mirror--md--lvm/d' /etc/fstab
+
+
+
 for i in 0 1 2 3 4
 do
 	dd if=/dev/zero of=${disks[$i]} bs=10MB count=2
@@ -210,9 +297,10 @@ done
 
 function clean_disks {
 
+rmmod rapidrecovery-vss
 
 if [[ -n $EXTENDED ]]; then
-	clean_disk_extended >/dev/null 2>&1
+	clean_disk_extended #>/dev/null 2>&1
 	exit 0
 fi
 
@@ -319,6 +407,21 @@ partprobe
 
 sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4\|md5p1\|thinlvm\|md127p2-\|md-mirror-md-lvm/d' /etc/fstab
 
+        for m in 1 3 5
+        do
+		for i in 1 2 3 4
+		do
+	            (echo d; echo ; echo ; ) | fdisk ${disks[$m]} >> /dev/null 2>&1
+		done
+        done
+
+        for m in 2 4
+        do
+		for i in 1 2 3 4
+		do
+	            (echo d; echo ; echo ;) | gdisk ${disks[$m]}
+		done
+        done
 
 for i in 0 1 2 3 4
 do
@@ -722,14 +825,15 @@ function extended {
                 for i in {1..3}
                 do
                         echo "${disk_partition_sectors[$i]}"
-                        (echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$i]}""M"; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
-                        sleep 0.2
+                        (echo n; echo p; echo $i; echo ; echo "+""${disk_partition_sectors[$i]}""M"; echo w) | fdisk ${disk[$m]} #>> /dev/null 2>&1
+                        sleep 1
 
                 done
                 sleep 0.2
                 (echo n; echo e; echo ; echo ; echo w) | fdisk ${disk[$m]}
                 sleep 0.2
                 (echo n; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
+		partprobe
 
         partprobe
 
@@ -785,6 +889,7 @@ function extended {
     wipefs --force --all /dev/mapper/striped_vg2_disk5_6_part5_1
     lvcreate -Zy -l 100%VG -i2 -I64 -n striped_lv2_disk5_6_part5_1 striped_vg2_disk5_6_part5_1
     #126 raild
+
     mdadm --create --verbose /dev/md/linear_lvm_part0 --level=linear --raid-devices=2 /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4 /dev/mapper/striped_vg2_disk5_6_part5_1-striped_lv2_disk5_6_part5_1
     partprobe
     (echo n; echo p; echo ; echo ; echo "+1G"; echo w) | fdisk "/dev/md/linear_lvm_part0" >> /dev/null 2>&1
@@ -803,12 +908,16 @@ function extended {
 	
     partprobe
     
+    echo "STAGE2"
+
+    
     vgcreate md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2 /dev/md127p2  /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
 
-    lvcreate -Zy -l 100%VG -m1 -n mirror-md-lvm md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
+    /usr/bin/yes | lvcreate -Zy -l 100%VG -m1 -n mirror-md-lvm md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
     partprobe
     /usr/bin/yes | mdadm --create /dev/md/md-mirror-md-lvm --level=mirror --raid-devices=4 /dev/md127p1 /dev/md127p3 /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p1 /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p3    
     partprobe
+    echo "STAGE3"
     mkfs.xfs -f /dev/md/md-mirror-md-lvm
     mkfs.ext4 /dev/mapper/md127p2----liner_vg2_disk5_6_part2_3--liner_lv2_disk5_6_part2_3p2-mirror--md--lvm 
     mkdir /mnt/md-mirror-md-lvm
@@ -816,35 +925,69 @@ function extended {
     mkdir /mnt/md127p2--mirror--md--lvm
     mount /dev/mapper/md127p2----liner_vg2_disk5_6_part2_3--liner_lv2_disk5_6_part2_3p2-mirror--md--lvm /mnt/md127p2--mirror--md--lvm
 
+    mdadm --create --verbose /dev/md/raid5 --level=5 --raid-device=3 "${disk[3]}1" "${disk[4]}1" "${disk[5]}1"
+    mkfs.ext4 -F /dev/md/raid5
+    mkdir /mnt/raid5
+    mount /dev/md/raid5 /mnt/raid5
+
+    yes | mdadm --create --verbose /dev/md/raid6 --level=6 --raid-device=4 "${disk[3]}2" "${disk[4]}2" "${disk[5]}2" "${disk[3]}3"
+    #mkfs.ext4 -F /dev/md/raid6
+    #mkdir /mnt/raid6
+    #mount /dev/md/raid6 /mnt/raid6
+
+    /usr/bin/yes | mdadm --create --verbose /dev/md/raid10 --level=10 --layout=o3 --raid-device=4 "${disk[5]}3" "${disk[5]}5" "${disk[3]}5" "${disk[4]}4"
+    mkfs.ext4 -F /dev/md/raid10
+    mkdir /mnt/raid10
+    mount /dev/md/raid10 /mnt/raid10
+
+    yes | sudo mdadm --create --verbose /dev/md/raid4 --level=4 --raid-devices=3 "${disk[4]}3" /dev/mapper/striped_vg1_disk5_6_part3_2-striped_lv1_disk5_6_part3_2 /dev/md/raid6
+    mkfs.ext4 -F /dev/md/raid4
+    mkdir /mnt/raid4
+    mount /dev/md/raid4 /mnt/raid4
+
+
+    if [ -e /etc/mdadm/mdadm.conf ]; then
+        mdadm --detail --scan >> /etc/mdadm/mdadm.conf
+    fi
+
+    if [ -e /etc/mdadm.conf ]; then
+        mdadm --detail --scan >> /etc/mdadm.conf
+    fi
+    
+    update-initramfs -u
+
+"""
+vgchange -a y
+partprobe
+mdadm --assemble --scan
+partprobe
+vgchange -a y
+partprobe
+mount /dev/mapper/md127p2----liner_vg2_disk5_6_part2_3--liner_lv2_disk5_6_part2_3p2-mirror--md--lvm /mnt/md127p2--mirror--md--lvm
+mount /dev/md/md-mirror-md-lvm /mnt/md-mirror-md-lvm
+"""
+
+
 }
 
-     function fstab {
-     IFS_OLD=$IFS
-     IFS=$'\n'
-     set -o noglob
-     
-     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
-     	for ((i = 0; i < ${#fstab[@]}; i++)); do
-      	if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" `]]; then
 
-           if [[ $FORMAT = "uuid" ]]; then
-              exp=$(echo ${fstab[$i]} | awk '{print $1}')
-              uuid=$(blkid -o export $exp | grep "^UUID=") 
-              mpfs=$(echo ${fstab[$i]} | awk '{print $2,$3}') 
-              echo $uuid $mpfs defaults 0 0 >> /etc/fstab
-           else
-              if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-                    fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-              fi
-              echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-           fi
-          
-          fi
-     	done
-     
-     IFS=$IFS_OLD
-     mount -a
-     }		
+function fstab {
+IFS_OLD=$IFS
+IFS=$'\n'
+set -o noglob
+fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
+for ((i = 0; i < ${#fstab[@]}; i++)); do
+	if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
+                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
+               
+    fi
+	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
+done
+
+IFS=$IFS_OLD
+
+mount -a
+}
 
 
 if [[ -z $INSTALL && -z $CLEAN && -z $EXTENDED ]] && [[ -n $DISK ]]; then
@@ -864,9 +1007,9 @@ fi
 
 if [[ -n $DISK && -n $CLEAN ]]; then
 	echo "1/3"
-	check_and_parse_disks >/dev/null 2>&1
+	check_and_parse_disks
 	echo "2/3"
-	clean_disks >/dev/null 2>&1
+	clean_disks
 	echo "3/3"
 	exit 0
 fi
@@ -885,13 +1028,13 @@ if [[ -n $DISK && -n $INSTALL ]]; then
 	echo "4/10"
 	ext2_check
 	echo "5/10"
-	disk_primary_partitions_create >/dev/null 2>&1
+	disk_primary_partitions_create
 	echo "6/10"
-	mkfs_primary_first_disk >/dev/null 2>&1
+	mkfs_primary_first_disk
 	echo "7/10"
-	raid_partition >/dev/null 2>&1
+	raid_partition
 	echo "8/10"
-	lvm_partitions_create >/dev/null 2>&1
+	lvm_partitions_create
 	echo "9/10"
 	fstab
 	echo "10/10"
@@ -909,9 +1052,9 @@ if [[ -n $DISK && -n $EXTENDED ]]; then
 	echo "3/7"
 	needed_disk_size >/dev/null 2>&1
 	echo "4/7"
-	ext2_check >/dev/null 2>&1
+	ext2_check
 	echo "5/7"
-	extended >/dev/null 2>&1
+	extended 
 	echo "6/7"
 	# disk_primary_partitions_create >/dev/null 2>&1
 	# echo "6/10"
