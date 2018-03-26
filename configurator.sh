@@ -969,28 +969,7 @@ mount /dev/md/md-mirror-md-lvm /mnt/md-mirror-md-lvm
 
 
 }
-
-<<<<<<< HEAD
-
 function fstab {
-IFS_OLD=$IFS
-IFS=$'\n'
-set -o noglob
-fstab=($(cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'))
-for ((i = 0; i < ${#fstab[@]}; i++)); do
-	if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-                fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-               
-    fi
-	echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-done
-
-IFS=$IFS_OLD
-
-mount -a
-}
-=======
-     function fstab {
      IFS_OLD=$IFS
      IFS=$'\n'
      set -o noglob
@@ -1015,8 +994,7 @@ mount -a
      
      IFS=$IFS_OLD
      mount -a
-     }		
->>>>>>> abe002754e40239b9f3e37a52aea1c189a55eaf7
+}		
 
 
 if [[ -z $INSTALL && -z $CLEAN && -z $EXTENDED ]] && [[ -n $DISK ]]; then
