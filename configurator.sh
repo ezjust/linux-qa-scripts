@@ -425,7 +425,7 @@ sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\
 
 for i in 0 1 2 3 4
 do
-	        dd if=/dev/zero of=${disks[$i]} bs=10MB count=2
+	    dd if=/dev/zero of=${disks[$i]} bs=10MB count=2
 		sgdisk -Z ${disks[$i]}
 done
 
@@ -465,11 +465,8 @@ fi
 }
 
 function needed_packages {
-if [ "`rpm -? >> /dev/null 2>&1; echo $?`" == "0" ]; then
-	pacman="rpm -qa"
-else
-	pacman="dpkg --list"
-fi
+
+rpm -? 1>> /dev/null 2>&1  && pacman="rpm-qa" || pacman="dpkg --list"   # get the appripriate command for the list of the installed packages
 
 if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
 	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc, thin-provisioning-tools"
@@ -560,6 +557,7 @@ function mkfs_primary_first_disk {
 	    mkdir /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
 	    mount "${disk[1]}5" /mnt/$(echo "${disk[1]}5" | cut -d"/" -f3)_ext2
     fi
+
 	mkfs.btrfs -f "${disk[1]}6"
 	mkdir /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
 	mount -o nodatasum,nodatacow,device="${disk[1]}6" "${disk[1]}6" /mnt/$(echo "${disk[1]}6" | cut -d"/" -f3)_btrfs
@@ -984,7 +982,7 @@ function fstab {
               echo $uuid $mpfs defaults 0 0 >> /etc/fstab
            else
               if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-                    fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becames /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
+                    fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becomes /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
               fi
               echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
            fi
