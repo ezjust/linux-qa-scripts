@@ -15,7 +15,7 @@ function operation {
 
     Get-ChildItem 'C:\Temp' | Where-Object {$_.CreationTime -le (Get-Date).AddDays(-7) } | Foreach-Object { Remove-Item $_.FullName -Recurse -Verbose -Force}
     Copy-Item $config.FullName -Destination $logs_folder -Verbose -Force
-    $zip = "\\10.10.61.20\LinuxQA_share\Logs\Core_Logs_$Date.zip"
+    $zip = "\\10.10.61.20\linuxQA_share\Temp\Core_Logs_$Date.zip"
     Add-Type -assembly "system.io.compression.filesystem"
     [io.compression.zipfile]::CreateFromDirectory($logs_folder, $zip)
         if ( $LastExitCode -eq 0 ) {
