@@ -27,7 +27,7 @@ fi
 for i in "${mount[@]}"; do
 
 	if [[ "$i" == '/' ]]; then
-		path="/tmp/$test_file"
+		path="/home/$test_file"
 		dd if=/dev/urandom of=$path bs=1M count=$size
 	else
 		path="$i/$test_file"
