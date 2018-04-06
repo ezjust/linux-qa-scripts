@@ -207,7 +207,7 @@ $sl_string = Get-Content "$downloadFolder\credentials.txt" | Select-string -patt
 $token = $sl_string -replace ".*="
 $emoji=":ghost:"
 $text="Server info = $ip, $br_name`r`nnew Core build $installer is successfully installed`r`n'https://localhost:8006/apprecovery/admin/' successfully validated!"
-$postSlackMessage = @{token="$token";channel="test_power";text="$text";username="linux_qa-bot"; icon_emoji="$emoji"}
+$postSlackMessage = @{token="$token";channel="qa-linux-team";text="$text";username="linux_qa-bot"; icon_emoji="$emoji"}
 
 # Very important setting for Invoke-Webrequest, makes invoke-webrequest in the same powershell space after eralier created webclients
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
