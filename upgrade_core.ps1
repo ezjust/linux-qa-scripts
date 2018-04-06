@@ -41,7 +41,7 @@ $build_num = (Select-String $log -pattern "Build number: " | Out-String )
 
 #Branch version should be filled if Core is not installed
 
-else { Write-Host -foregroundcolor yellow "Core is not installed, please enter branch version for installation. For example 6.2.0 or 7.1.0"
+else { Write-Host -foregroundcolor yellow "Core is not installed, please enter branch version for installation. For example 6.2.1 or 7.1.0"
 $branch=Read-Host
 }
 
@@ -49,8 +49,8 @@ $branch=Read-Host
 
 $ip = Get-NetIPAddress | Where { $_.AddressFamily -like "IPv4" -and $_.InterfaceAlias -match "Ethernet" } | Select -ExpandProperty IPAddress
 
-if ($branch -eq "6.2.0") {
-$artilink = "https://tc.appassure.com/httpAuth/app/rest/builds/branch:%3Cdefault%3E,status:SUCCESS,buildType:AppAssure_Windows_Release700_FullBuild/artifacts/children/installers"
+if ($branch -eq "6.2.1") {
+$artilink = "https://tc.appassure.com/httpAuth/app/rest/builds/branch:%3Cdefault%3E,status:SUCCESS,buildType:AppAssure_Windows_Release621_FullBuild/artifacts/children/installers"
 $br_name="release"
 }
 elseif ($branch -eq "7.1.0") {
@@ -132,12 +132,13 @@ else { $dies; Add-Content -Path $inst_log -Value "`n***[ERROR]*** $date : There 
     $com_args = @(
     "/silent",
     "licensekey=$downloadFolder\QA.lic",
-    "reboot=asneeded"
+    "reboot=never"
     "privacypolicy=accept"
     )
     Write-Host -foregroundcolor yellow "$last_build exists in the $downloadFolder and it's started to install"
-    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -Wait 
-    $lastcom=$?   
+    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -Wait
+    $lastcom=$? 
+    $install.ExitCode   
 #Delete builds those are older than 3 days in folder
 $extension="*.exe"
 $days="2"
@@ -178,7 +179,7 @@ $Core_Status = [int]$Core_Response.StatusCode
 
 Write-Host $lastcom $Core_Status $lastcom1
 
-if ( $lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
+if ($lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
 $dies
 Add-Content -Path $inst_log -Value "`n***[INFO]*** $date_time : new Core build $installer is successfully installed" -Force
 #$cores_ser = Get-Service -Name "*Core*" | %{$_.Status}
@@ -253,6 +254,6 @@ Directory should consist of this list of files:
 7. last_installation.log
 
 BE aware if develop and release builds would change numbers, also numbers should be changed into the script under:
-if ($branch -eq "6.2.0")
+if ($branch -eq "6.2.1")
 if ($branch -eq "7.1.0")
 '@  
