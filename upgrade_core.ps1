@@ -1,7 +1,7 @@
 #ATTENTION!!!MAKE SURE THAT aria2c is downloaded and configured on your system (for 16flows downloading. Manual is here https://www.youtube.com/watch?v=LS-VmSmtaWg)
 #
 #Preset of variables. Note: credentials.txt and QA.lic (Core license file) file should exist in current directory. Also if LOGS folder is not default please change $folder path
-$downloadFolder = split-path -parent $MyInvocation.MyCommand.Definition
+$downloadFolder = (Get-Item -Path ".\" -Verbose).FullName
 $username = "dev-softheme"
 $tc_string = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "tc_password" -encoding ASCII | Select -First 1
 $password = $tc_string -replace ".*="
@@ -160,15 +160,18 @@ Get-ChildItem -Path $downloadFolder -Include $extension -Recurse | Where {$_.Las
     set-acl $file.Fullname $acl
     }
 
-#Sending e-mails and save logs of installation proccess
+#Sending notifications and save logs of installation proccess
+
+$test_connection = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "test_connection" -encoding ASCII | Select -First 1
+$pass = $test_connection -replace ".*="
 
 while (($Core_Status -ne 200 -and $lastcom1 -ne $True) -and ( $count -lt 20 ))
 {    
 # Get a response from the Core
 $count=$count+1
 $Core_Request = [System.Net.WebRequest]::Create("https://localhost:8006/apprecovery/admin/")
-$Core_Request.Credentials = new-object System.Net.NetworkCredential("administrator", "$password")
-$Core_Response = $Core_Request.GetResponseAsync()
+$Core_Request.Credentials = new-object System.Net.NetworkCredential("share", "$pass")
+$Core_Response = $Core_Request.GetResponse()
 $lastcom1 = $?
 $Core_Status = [int]$Core_Response.StatusCode
 }
