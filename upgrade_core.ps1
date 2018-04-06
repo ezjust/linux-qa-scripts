@@ -1,7 +1,7 @@
 #ATTENTION!!!MAKE SURE THAT aria2c is downloaded and configured on your system (for 16flows downloading. Manual is here https://www.youtube.com/watch?v=LS-VmSmtaWg)
 #
 #Preset of variables. Note: credentials.txt and QA.lic (Core license file) file should exist in current directory. Also if LOGS folder is not default please change $folder path
-$downloadFolder = split-path -parent $MyInvocation.MyCommand.Definition
+$downloadFolder = (Get-Item -Path ".\" -Verbose).FullName
 $username = "dev-softheme"
 $tc_string = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "tc_password" -encoding ASCII | Select -First 1
 $password = $tc_string -replace ".*="
@@ -41,7 +41,7 @@ $build_num = (Select-String $log -pattern "Build number: " | Out-String )
 
 #Branch version should be filled if Core is not installed
 
-else { Write-Host -foregroundcolor yellow "Core is not installed, please enter branch version for installation. For example 6.2.0 or 7.1.0"
+else { Write-Host -foregroundcolor yellow "Core is not installed, please enter branch version for installation. For example 6.2.1 or 7.1.0"
 $branch=Read-Host
 }
 
@@ -49,8 +49,8 @@ $branch=Read-Host
 
 $ip = Get-NetIPAddress | Where { $_.AddressFamily -like "IPv4" -and $_.InterfaceAlias -match "Ethernet" } | Select -ExpandProperty IPAddress
 
-if ($branch -eq "6.2.0") {
-$artilink = "https://tc.appassure.com/httpAuth/app/rest/builds/branch:%3Cdefault%3E,status:SUCCESS,buildType:AppAssure_Windows_Release700_FullBuild/artifacts/children/installers"
+if ($branch -eq "6.2.1") {
+$artilink = "https://tc.appassure.com/httpAuth/app/rest/builds/branch:%3Cdefault%3E,status:SUCCESS,buildType:AppAssure_Windows_Release621_FullBuild/artifacts/children/installers"
 $br_name="release"
 }
 elseif ($branch -eq "7.1.0") {
@@ -132,12 +132,13 @@ else { $dies; Add-Content -Path $inst_log -Value "`n***[ERROR]*** $date : There 
     $com_args = @(
     "/silent",
     "licensekey=$downloadFolder\QA.lic",
-    "reboot=asneeded"
+    "reboot=never"
     "privacypolicy=accept"
     )
     Write-Host -foregroundcolor yellow "$last_build exists in the $downloadFolder and it's started to install"
-    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -Wait 
-    $lastcom=$?   
+    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -Wait
+    $lastcom=$? 
+    $install.ExitCode   
 #Delete builds those are older than 3 days in folder
 $extension="*.exe"
 $days="2"
@@ -160,22 +161,25 @@ Get-ChildItem -Path $downloadFolder -Include $extension -Recurse | Where {$_.Las
     set-acl $file.Fullname $acl
     }
 
-#Sending e-mails and save logs of installation proccess
+#Sending notifications and save logs of installation proccess
+
+$test_connection = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "test_connection" -encoding ASCII | Select -First 1
+$pass = $test_connection -replace ".*="
 
 while (($Core_Status -ne 200 -and $lastcom1 -ne $True) -and ( $count -lt 20 ))
 {    
 # Get a response from the Core
 $count=$count+1
 $Core_Request = [System.Net.WebRequest]::Create("https://localhost:8006/apprecovery/admin/")
-$Core_Request.Credentials = new-object System.Net.NetworkCredential("administrator", "$password")
-$Core_Response = $Core_Request.GetResponseAsync()
+$Core_Request.Credentials = new-object System.Net.NetworkCredential("share", "$pass")
+$Core_Response = $Core_Request.GetResponse()
 $lastcom1 = $?
 $Core_Status = [int]$Core_Response.StatusCode
 }
 
 Write-Host $lastcom $Core_Status $lastcom1
 
-if ( $lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
+if ($lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
 $dies
 Add-Content -Path $inst_log -Value "`n***[INFO]*** $date_time : new Core build $installer is successfully installed" -Force
 #$cores_ser = Get-Service -Name "*Core*" | %{$_.Status}
@@ -250,6 +254,6 @@ Directory should consist of this list of files:
 7. last_installation.log
 
 BE aware if develop and release builds would change numbers, also numbers should be changed into the script under:
-if ($branch -eq "6.2.0")
+if ($branch -eq "6.2.1")
 if ($branch -eq "7.1.0")
 '@  

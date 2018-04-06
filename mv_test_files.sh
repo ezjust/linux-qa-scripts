@@ -16,7 +16,7 @@ if [[ -z $test_file ]]; then
 fi
 
 if [[ -z $mount ]]; then
-	mount=($(cat /proc/mounts | grep "/dev/sd" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*"))
+	mount=($(cat /proc/mounts | grep "/dev/sd" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*|*opt*|*home*|*srv*|*snapshots*"))
 fi
 
 if [[ -z $size ]]; then
@@ -27,7 +27,7 @@ fi
 for i in "${mount[@]}"; do
 
 	if [[ "$i" == '/' ]]; then
-		path="/tmp/$test_file"
+		path="/home/$test_file"
 		dd if=/dev/urandom of=$path bs=1M count=$size
 	else
 		path="$i/$test_file"
