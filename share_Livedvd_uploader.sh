@@ -34,7 +34,7 @@ int=0
    elif [[ ! -f $chk_file_ex ]] && [[ $error_code -eq 0 ]]; then
       echo "Retrieving of the $branch.$build LIVEDVD iso has been completed. $branch.$build LiveDVD starts to be downloaded."
       aria2c -d $dest_folder -x 16 --http-user=$username --http-passwd=123asdQ $build_link --allow-overwrite=true --out="rapidrecovery-livedvd-$branch.$build.iso"
-      find $dest_folder -name 'rapidrecovery*' -mtime +0 | xargs rm -rf
+      find $dest_folder -name 'rapidrecovery*' -mtime +2 | xargs rm -rf
       return 0
    else
       date=`date`
