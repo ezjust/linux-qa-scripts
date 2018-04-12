@@ -16,7 +16,7 @@ if [[ -z $test_file ]]; then
 fi
 
 if [[ -z $mount ]]; then
-	mount=($(cat /proc/mounts | grep "/dev/sd" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*|*opt*|*home*|*srv*|*snapshots*"))
+	mount=($(cat /proc/mounts | grep -E "/dev/sd|/dev/mapper|/dev/md" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*|*opt*|*home*|*srv*|*snapshots*"))
 fi
 
 if [[ -z $size ]]; then
