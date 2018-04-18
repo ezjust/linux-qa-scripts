@@ -466,7 +466,7 @@ fi
 
 function needed_packages {
 
-rpm -? 1>> /dev/null 2>&1  && pacman="rpm-qa" || pacman="dpkg --list"   # get the appripriate command for the list of the installed packages
+rpm -? 1>> /dev/null 2>&1  && pacman="rpm -qa" || pacman="dpkg --list"   # get the appripriate command for the list of the installed packages
 
 if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
 	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc, thin-provisioning-tools"
