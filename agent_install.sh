@@ -352,7 +352,7 @@ if [[ -z $kernel ]] || [[ "$kernel" = "all" ]]; then
     kernel_to_build="all"
 else
     if [[ "$kernel" = "current" ]]; then
-        kernel_to_build=`sudo rapidrecovery-config -m -1 | grep current | awk {'print $1'}`
+        kernel_to_build=`sudo rapidrecovery-config -m -1 | grep current | awk {'print $1'} | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"`
     else
         echo "Incorrect kernel number is used for the rapidrecovery-config. The number was: $kernel"
     fi
