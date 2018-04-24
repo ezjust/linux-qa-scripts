@@ -35,6 +35,7 @@ $build_num = (Select-String $log -pattern "Build number: " | Out-String )
     if ($log_check -eq $true) {
         ForEach-Object -Process {
         $result = $build_num.Split("Build number: ")[-1]
+        $result = $result -replace "`t|`n|`r",""
         }
         if ($result) {
         $branch = $result.Remove(5)
