@@ -59,6 +59,10 @@ case $i in
     BRANCH="${i#*=}"
     shift # past argument=value
     ;;
+    -k=*|--kernel=*)
+    kernel="${i#*=}"
+    shift # past argument=value
+    ;;
     -l|--logs)
     LOGS=y
     shift # past argument=value
@@ -339,10 +343,25 @@ if [[ "$check_firewall_status" -eq "0" ]]; then
         firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 fi
 
+'''We use two available option:
+    all - for building module for all kernels
+    current - to build fo the current module only
+   All other option should return an error.'''
+
+if [[ -n $kernel || "$kernel" = "all" ]]; then
+    kernel_to_build="all"
+else
+    if [[ "$kernel" = "current" ]]; then
+        kernel_to_build=`sudo rapidrecovery-config -m -1 | grep current | awk {'print $1'}`
+    else
+        echo "Incorrect kernel number is used for the rapidrecovery-config. The number was: $kernel"
+    fi
+fi
+
 #echo "1 $port" | $rr_config # configure default port for transfering
 echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
-echo "4 all" | $rr_config # install rapidrecovery-vss into all available system kernels
+echo "4 $kernel_to_build" | $rr_config # install rapidrecovery-vss into all available system kernels
 echo "5" | $rr_config # allow to start agent immediately
 if [[ -n $firewall ]]; then # In case if firewall is not Null - means enabled.
         echo "3 $firewall" | $rr_config # use first available option to configure firewall.
