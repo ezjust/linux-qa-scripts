@@ -343,12 +343,12 @@ if [[ "$check_firewall_status" -eq "0" ]]; then
         firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
 fi
 
-'''We use two available option:
-    all - for building module for all kernels
-    current - to build fo the current module only
-   All other option should return an error.'''
+#   We use two available option:
+#    all - for building module for all kernels
+#    current - to build fo the current module only
+#   All other option should return an error.
 
-if [[ -n $kernel || "$kernel" = "all" ]]; then
+if [[ -z $kernel ]] || [[ "$kernel" = "all" ]]; then
     kernel_to_build="all"
 else
     if [[ "$kernel" = "current" ]]; then
