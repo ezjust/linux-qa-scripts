@@ -361,7 +361,7 @@ fi
 #echo "1 $port" | $rr_config # configure default port for transfering
 echo $user:$password | chpasswd
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
-echo "4 $kernel_to_build" | $rr_config # install rapidrecovery-vss into all available system kernels
+(echo 4; echo $kernel_to_build;) | $rr_config # install rapidrecovery-vss into all available system kernels
 echo "5" | $rr_config # allow to start agent immediately
 if [[ -n $firewall ]]; then # In case if firewall is not Null - means enabled.
         echo "3 $firewall" | $rr_config # use first available option to configure firewall.
