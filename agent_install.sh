@@ -353,16 +353,24 @@ if [[ -z $kernel ]] || [[ "$kernel" = "all" ]]; then
 else
     if [[ "$kernel" = "current" ]]; then
         kernel_to_build=`sudo rapidrecovery-config -m -1 | grep current | awk {'print $1'} | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g"`
+    elif [[ "$kernel" = "no" ]]; then
+        kernel_to_build=""
     else
         echo "Incorrect kernel number is used for the rapidrecovery-config. The number was: $kernel"
     fi
 fi
 
 #echo "1 $port" | $rr_config # configure default port for transfering
+
 echo $user:$password | chpasswd
+
 echo "2 $user" | $rr_config # add new user to allow to use it for protection
-(echo 4; echo $kernel_to_build;) | $rr_config # install rapidrecovery-vss into all available system kernels
+
+if [[ -n $kernel_to_build ]]; then                # check that variable is not NONE. Somethimes we do not want to build module
+    (echo 4; echo $kernel_to_build;) | $rr_config # install rapidrecovery-vss into system kernels
+
 echo "5" | $rr_config # allow to start agent immediately
+
 if [[ -n $firewall ]]; then # In case if firewall is not Null - means enabled.
         echo "3 $firewall" | $rr_config # use first available option to configure firewall.
 fi
