@@ -368,7 +368,7 @@ echo "2 $user" | $rr_config # add new user to allow to use it for protection
 
 if [[ -n $kernel_to_build ]]; then                # check that variable is not NONE. Somethimes we do not want to build module
     (echo 4; echo $kernel_to_build;) | $rr_config # install rapidrecovery-vss into system kernels
-
+fi
 echo "5" | $rr_config # allow to start agent immediately
 
 if [[ -n $firewall ]]; then # In case if firewall is not Null - means enabled.
