@@ -21,7 +21,7 @@ $emailSmtpServer = "smtp.gmail.com"
 $emailSmtpServerPort = "587"
 
 
-#LOg to file all executions of powershell
+#Log to file all executions of powershell
 
 Start-Transcript -Path $inst_log
 
@@ -77,7 +77,7 @@ $check_task = Get-ScheduledTask -TaskName *Core_Upgrade*
 
 if ($check_task -eq $null) {    
 $Time = New-ScheduledTaskTrigger -Weekly -At 22:00 -DaysOfWeek $weekdays 
-$PS = New-ScheduledTaskAction -Execute "$downloadFolder\upgrade_core.ps1"
+$PS = New-ScheduledTaskAction -Execute "powershell.exe $downloadFolder\upgrade_core.ps1"
 Register-ScheduledTask -TaskName "Core_Upgrade_$br_name" -RunLevel Highest -Trigger $Time -User $local_user -Password "$local_pass" –Action $PS -Description "$br_name Core instalation or upgrade task of $branch branch"
 }
 
