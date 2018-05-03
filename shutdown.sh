@@ -1,17 +1,45 @@
 #!/bin/bash
 
 case $1 in
-	-a|archivelog)
+	-a|--archivelog)
   	mode=on
   	;;
-	-n|noarchivelog)
+	-n|--noarchivelog)
   	mode=off
+	;;
+	-b|--begin)
+	mode=begin
+	;;
+	-e|--end)
+	mode=end
 	;;
 	*)
   	echo "I seem to be running with an nonexistent parameter..."
+	echo "-a|--archivelog   - Turn to ARCHIVELOG MODE"
+	echo "-n|--noarchivelog - Turn to NOARCHIVELOG MODE"
+	echo "-b|--begin        - Begin backup"
+	echo "-e|--end          - End backup"
 	exit 1
   	;;
 esac
+
+<<COMMENT
+The oracle.txt file is the file, where credentials to the oracle databases
+are set.
+Example of the file:
+# The following description:
+# databas name : user to login : password for the user
+
+DATABASE=XE:sys:123asdQ,TEST:123:qwe 
+
+Where:
+ 'DATABASE' is the string variable.
+ 'XE'      - the ORACLE_SID   (`ps -ef | grep -e _pmon_ | head -n 1 | awk '{print $8}' | cut -d'_' -f3`);
+ 'sys'     - login to the sqlplus;
+ '123asdQ' - Password for the login user;
+ ','       - Separator between databases;
+
+COMMENT
 
 source oracle.txt
 
@@ -51,9 +79,33 @@ EOF
 
 }
 
+begin_backup () {
+        export ORACLE_SID=$3
+        sqlplus /nolog << EOF 2>&1
+        connect $1/$2 as sysdba
+        WHENEVER SQLERROR EXIT SQL.SQLCODE
+        alter database begin backup;
+	select * from v\$database;
+        select name, log_mode, open_mode from v\$database;
+        SELECT INSTANCE_NAME, STATUS, DATABASE_STATUS FROM V\$INSTANCE;
+	exit;
+EOF
 
+}
 
+end_backup () {
+        export ORACLE_SID=$3
+        sqlplus /nolog << EOF 2>&1
+        connect $1/$2 as sysdba
+        WHENEVER SQLERROR EXIT SQL.SQLCODE
+        alter database end backup;
+	select * from v\$backup;
+	select name, log_mode, open_mode from v\$database;
+	SELECT INSTANCE_NAME, STATUS, DATABASE_STATUS FROM V\$INSTANCE;
+	exit;
+EOF
 
+}
 
 for i in ${databases[@]}; do
 	_database=`echo $i | cut -d':' -f1`
@@ -66,7 +118,11 @@ for i in ${databases[@]}; do
 		archivelog_mode $login $password $_database || exit_code=$?
 	elif [[ $mode == "off" ]]; then
 		noarchivelog_mode $login $password $_database || exit_code=$?
-	else:
+	elif [[ $mode == "begin" ]]; then
+		begin_backup $login $password $_database || exit_code=$?
+	elif [[ $mode == "end" ]]; then
+		end_backup $login $password $_database || exit_code=$?
+	else
 		echo "No known mode selected. Exit 2"
 		exit 2
 	fi
