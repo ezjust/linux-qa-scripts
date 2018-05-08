@@ -27,6 +27,10 @@ tput setaf 2;   echo "--install/-i     - to create default configuration scheme 
 tput setaf 3;	echo "--clean/-c       - to clean up default configuration scheme for testing"; tput sgr0
 		echo 	EXAMPLE :   ./configurator.sh --clean --disk=/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf
 		echo "       or ./configurator.sh --clean --disk=default to use default array of disks"
+                echo "       use -f=UUID or --format=UUID to write notes to fstab by disks UUIDs"	
+                echo "       use -v or --version to get version of the script"	
+                echo "       use -h or --help to get full help page of this script"	
+                echo ""
 		echo ""
 		echo "Default partition is shown below. Please note, that script will use disks from the command line.
 That is why, instead of sdb, sdc, sdd, sde, sdf script will use disks you have provided."
@@ -82,6 +86,10 @@ case $i in
     -e|--extended)
     EXTENDED=y
     shift
+    ;;
+    -f=*|--format=*)	+    *)
+    FORMAT=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`	
+    shift # past argument=value	
     ;;
     *)
     tput setaf 1; echo "ERROR: Incorrect argument"; tput sgr0
