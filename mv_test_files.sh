@@ -2,8 +2,10 @@
 
 #set -x
 
-echo -e "\e[33mSpecify partition's mount points to copy there test files.\e[0m\nMultiple partitions separates by coma. For example /mnt/test1,/mnt/test2\nOr leave empty to copy test files to all mounted partitions.\nIn this case system partitions /boot, /boot/efi, swap etc will be ignored, except root / partition, file will be located into /home :"
+echo -e "\e[33mSpecify partition's mount points to copy there test files.\e[0m\nMultiple partitions separates by coma. For example /mnt/test1,/mnt/test2\nOr leave empty to copy test files to all mounted partitions.\nIn this case system partitions /boot, /boot/efi, swap etc will be ignored, except root / partition, file will be located into /tmp :"
 read -p "" mount
+IFS=","
+mountar=($mount)
 echo -e "\e[33mSpecify destination filename, for example test.txt\e[0m\nWARNING: use single filename for every iteration:"
 read -p "" test_file
 
@@ -15,8 +17,8 @@ if [[ -z $test_file ]]; then
 	exit 1
 fi
 
-if [[ -z $mount ]]; then
-	mount=($(cat /proc/mounts | grep -E "/dev/sd|/dev/mapper|/dev/md" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*|*opt*|*home*|*srv*|*snapshots*"))
+if [[ -z $mountar ]]; then
+	mountar=($(cat /proc/mounts | grep -E "/dev/sd|/dev/mapper|/dev/md" | awk '{print $2}' | grep -vE "*boot*|*dev*|*sys*|*proc*|*tmp*|*var*|*usr*|*opt*|*home*|*srv*|*snapshots*"))
 fi
 
 if [[ -z $size ]]; then
@@ -24,7 +26,7 @@ if [[ -z $size ]]; then
 	echo "Size of file was not set mannualy, it will be used by default as 100MB"
 fi
 
-for i in "${mount[@]}"; do
+for i in "${mountar[@]}"; do
 
 	if [[ "$i" == '/' ]]; then
 		path="/home/$test_file"
