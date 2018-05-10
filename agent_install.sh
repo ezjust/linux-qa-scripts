@@ -296,8 +296,11 @@ else
         $operator install "-y" $package_name
         if [ "$?" -eq "1" ]
         then
-        echo "Errors occurred during packages downloading"
-        exit 1
+            echo "Errors occurred during packages downloading"
+            exit 1
+
+        # block belowe should prevent us from the Release file not found on the install agent stage.
+        
         elif [[ "$?" -eq "100" ]]; then
             counter=0
             while [[ $error_code != "0" ]] && [[ $counter -le 10 ]]; do
@@ -306,6 +309,7 @@ else
                 let 'counter=counter+1'
                 sleep 60
                 echo 'sleeping'
+            done
         fi
 
 fi
