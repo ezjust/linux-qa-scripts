@@ -340,7 +340,7 @@ useradd -G $user $user
 
 check_firewall_status=$($rr_config -f list >> /dev/null; echo $?)
 if [[ "$check_firewall_status" -eq "0" ]]; then
-        firewall=$($rr_config -f list | awk -F'[_/]' '{print $1}')
+        firewall=$($rr_config -f list | grep manual| awk -F'[_/]' '{print $1}')  # grep manual is temporary solution to avoid failing state. For now list commands returns not only the list of the firewalls.
 fi
 
 #   We use two available option:
