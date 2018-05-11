@@ -87,7 +87,7 @@ case $i in
     EXTENDED=y
     shift
     ;;
-    -f=*|--format=*)	+    *)
+    -f=*|--format=*)
     FORMAT=`echo ${i#*=} | tr '[:upper:]' '[:lower:]'`	
     shift # past argument=value	
     ;;
