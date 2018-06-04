@@ -1,8 +1,16 @@
 import subprocess
+import argparse
 import os
+import sys
 import time
 import string
 
+# the list of the op: 10.10.8.4/16 will use test all network.
+parser = argparse.ArgumentParser(description='Set the IP address list')
+parser.add_argument('--ip', dest='IPLIST', required=True)
+args = parser.parse_args()
+
+IPLIST = args.IPLIST
 
 def executor(cmd=None, debug=True):
     # type: (object) -> object
@@ -46,8 +54,7 @@ def get_network_interface():
 
 def list_active_ip():
     if get_network_interface():
-        return executor(cmd="arp-scan --interface=" + get_network_interface() + " -N -g 10.10.40.20/16 | grep 10.10. | awk '{print $1}'", debug=False)
-
+        return executor(cmd="arp-scan --interface=" + get_network_interface() + " -N -g %s | grep 10.10. | awk '{print $1}'" %IPLIST, debug=False)
 
 
 print get_network_interface()
