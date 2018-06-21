@@ -219,8 +219,6 @@ function Send-Mail ($mail_mess) {
     $SMTPClient.Credentials = New-Object System.Net.NetworkCredential( $mail_user , $local_pass );
     $SMTPClient.EnableSsl = $true;
     $SMTPClient.Send( $emailMessage ) 
-    Stop-Transcript
-    Exit 0
 }
 
 function Send-To-Slack ($text) {
@@ -289,10 +287,14 @@ $SMTPClient.Send( $emailMessage )
     Remove-Item -Path "$inst_log.old"
     Move-Item -Force $inst_log -Destination "$inst_log.old"
     Send-Mail "Server info = $ip, $br_name`r`nOOps...Something went wrong.Look at attached log file, maybe it could help to investigate the issue"
+
+    Exit 1
+
+    Stop-Transcript
 }
 
 }
-$mes_reboot = "Server info = $ip, $br_name`r`nPlease make machine reboot before Core installation"
+$mes_reboot = "Server info = $ip, $br_name.`r`nPlease make machine reboot before Core installation"
 
 
 if ($install.ExitCode -eq "0") {Send-Notification}
