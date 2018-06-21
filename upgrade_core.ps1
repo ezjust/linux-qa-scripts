@@ -155,14 +155,39 @@ else { $dies; Add-Content -Path $inst_log -Value "`n***[ERROR]*** $date : There 
     "privacypolicy=accept"
     )
     Write-Host -foregroundcolor yellow "$last_build exists in the $downloadFolder and it's started to install"
-    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -Wait
-    $lastcom=$? 
-    $install.ExitCode   
+    $install = Start-Process -FilePath "$com" -ArgumentList $com_args -PassThru -Wait
+    $lastcom = $? 
+      
 #Delete builds those are older than 3 days in folder
-$extension="*.exe"
-$days="2"
+$extension = "*.exe"
+$days = "2"
 $lastwrite = (get-date).AddDays(-$days)
 Get-ChildItem -Path $downloadFolder -Include $extension -Recurse | Where {$_.LastWriteTime -lt $lastwrite} | Remove-Item
+
+
+
+#Add line to enable live rollback into Web config of Core DEVELOP ()then would be implemented to all
+if ($branch -eq "7.1.0") {
+$Drives = Get-PSDrive -PSProvider "FileSystem"
+foreach ($drive in $Drives) {
+$web_conf_path = (Get-ChildItem -Path $drive":\" -Filter "*coreadmin" -Recurse -Force -Directory -ErrorAction SilentlyContinue | Where-Object {$_.FullName -like "*AppRecovery\Core\CoreService\coreadmin"}).FullName
+$fileName = "$web_conf_path\Web.config"  
+    if ($fileName -like  "*\AppRecovery\Core\CoreService\coreadmin\Web.config") {
+        break
+    }
+}
+
+(Get-Content $fileName) | 
+    Foreach-Object {
+        $_ # send the current line to output
+        if ($_ -match "<FeatureToggles>") 
+        {
+            #Add Lines after the selected pattern 
+            '<add FeatureName="RR67006" Value="true" /> <!-- Instant rollback for linux agent -->'
+        }
+    } | Set-Content $fileName
+
+}
 
 #Set Permissions for log file, to allow send it via mail, BE SURE that all needed files such last_installation.log and other "new added" files EXIST in the installation folder
 
@@ -182,26 +207,57 @@ Get-ChildItem -Path $downloadFolder -Include $extension -Recurse | Where {$_.Las
 
 #Sending notifications and save logs of installation proccess
 
-while (($Core_Status -ne 200 -and $lastcom1 -ne $True) -and ( $count -lt 20 ))
-{    
-# Get a response from the Core
-$count=$count+1
-$Core_Request = [System.Net.WebRequest]::Create("https://localhost:8006/apprecovery/admin/")
-$Core_Request.Credentials = new-object System.Net.NetworkCredential("$local_user", "$local_pass")
-$Core_Response = $Core_Request.GetResponse()
-$lastcom1 = $?
-$Core_Status = [int]$Core_Response.StatusCode
+function Send-Mail ($mail_mess) {
+#Message to mail if core was not upgraded
+    $emailMessage = New-Object System.Net.Mail.MailMessage( $From , $To )
+#$emailMessage.cc.add($emailcc)
+    $emailMessage.Subject = "CORE FAILED TO UPGRADE" 
+    $emailMessage.Body = "$mail_mess"
+    $emailMessage.Attachments.add("$inst_log.old")
+    $SMTPClient = New-Object System.Net.Mail.SmtpClient( $emailSmtpServer , $emailSmtpServerPort )
+    $SMTPClient.EnableSsl = $False
+    $SMTPClient.Credentials = New-Object System.Net.NetworkCredential( $mail_user , $local_pass );
+    $SMTPClient.EnableSsl = $true;
+    $SMTPClient.Send( $emailMessage ) 
+    Stop-Transcript
+    Exit 0
 }
 
-Write-Host $lastcom $Core_Status $lastcom1
+function Send-To-Slack ($text) {
 
-if ($lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
-$dies
-Add-Content -Path $inst_log -Value "`n***[INFO]*** $date_time : new Core build $installer is successfully installed" -Force
+#Message to slack
+
+    $sl_string = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "sl_token" -encoding ASCII | Select -First 1
+    $token = $sl_string -replace ".*="
+    $emoji=":ghost:"
+    $postSlackMessage = @{token="$token";channel="qa-linux-team";text="$text";username="linux_qa-bot"; icon_emoji="$emoji"}
+
+# Very important setting for Invoke-Webrequest, makes invoke-webrequest in the same powershell space after eralier created webclients
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
+
+    Invoke-RestMethod -Uri https://slack.com/api/chat.postMessage -Body $postSlackMessage
+
+}
+
+function Send-Notification ($restart) {
+
+    while (($Core_Status -ne 200 -and $lastcom1 -ne $True) -and ( $count -lt 20 ))
+    {    
+# Get a response from the Core
+    $count=$count+1
+    $Core_Request = [System.Net.WebRequest]::Create("https://localhost:8006/apprecovery/admin/")
+    $Core_Request.Credentials = new-object System.Net.NetworkCredential("$local_user", "$local_pass")
+    $Core_Response = $Core_Request.GetResponse()
+    $lastcom1 = $?
+    $Core_Status = [int]$Core_Response.StatusCode
+    }
+
+    if ($lastcom -eq $True -and $Core_Status -eq 200 -and $lastcom1 -eq $True) {
+    $dies
+    Add-Content -Path $inst_log -Value "`n***[INFO]*** $date_time : new Core build $installer is successfully installed" -Force
 #$cores_ser = Get-Service -Name "*Core*" | %{$_.Status}
-Remove-Item -Path "$inst_log.old" -Force -ErrorAction Continue
-Move-Item $inst_log -Destination "$inst_log.old" -Force -ErrorAction Continue
-
+    Remove-Item -Path "$inst_log.old" -Force -ErrorAction Continue
+    Move-Item $inst_log -Destination "$inst_log.old" -Force -ErrorAction Continue
 #Message to mail
 <#
 $emailMessage = New-Object System.Net.Mail.MailMessage( $From , $To )
@@ -218,48 +274,32 @@ $SMTPClient.EnableSsl = $true;
 $SMTPClient.Send( $emailMessage )
 #>
 
-#Message to slack
+    Send-To-Slack "Server info = $ip, $br_name`r`nnew Core build $installer is successfully installed`r`n'https://localhost:8006/apprecovery/admin/' successfully validated!"
+    Stop-Transcript
+    $restart
+    Exit 0
+    }
 
-$sl_string = Get-Content "$downloadFolder\credentials.txt" | Select-string -pattern "sl_token" -encoding ASCII | Select -First 1
-$token = $sl_string -replace ".*="
-$emoji=":ghost:"
-$text="Server info = $ip, $br_name`r`nnew Core build $installer is successfully installed`r`n'https://localhost:8006/apprecovery/admin/' successfully validated!"
-$postSlackMessage = @{token="$token";channel="qa-linux-team";text="$text";username="linux_qa-bot"; icon_emoji="$emoji"}
+    else { 
 
-# Very important setting for Invoke-Webrequest, makes invoke-webrequest in the same powershell space after eralier created webclients
-[System.Net.ServicePointManager]::ServerCertificateValidationCallback = $null
-
-Invoke-RestMethod -Uri https://slack.com/api/chat.postMessage -Body $postSlackMessage
-
-Exit 0
+    $dies
+    Add-Content -Path $inst_log -Value "`n***[ERROR]*** $date_time : INSTALLATION FAILED check last_installation.log for details" -Force
+    $dies
+    Get-Content $log | Select-String -pattern "$date", "$date_" | Out-File -Append $inst_log
+    Remove-Item -Path "$inst_log.old"
+    Move-Item -Force $inst_log -Destination "$inst_log.old"
+    Send-Mail "Server info = $ip, $br_name`r`nOOps...Something went wrong.Look at attached log file, maybe it could help to investigate the issue"
 }
 
-else { 
-
-$dies
-Add-Content -Path $inst_log -Value "`n***[ERROR]*** $date_time : INSTALLATION FAILED check last_installation.log for details" -Force
-$dies
-Get-Content $log | Select-String -pattern "$date", "$date_" | Out-File -Append $inst_log
-Remove-Item -Path "$inst_log.old"
-Move-Item -Force $inst_log -Destination "$inst_log.old"
-
-#Message to mail if core was not upgraded
-$emailMessage = New-Object System.Net.Mail.MailMessage( $From , $To )
-#$emailMessage.cc.add($emailcc)
-$emailMessage.Subject = "CORE FAILED TO UPGRADE" 
-$emailMessage.Body = "Server info = $ip, $br_name`r`nOOps...Something went wrong.Look at attached log file, maybe it could help to investigate the issue"
-$emailMessage.Attachments.add("$inst_log.old")
-$SMTPClient = New-Object System.Net.Mail.SmtpClient( $emailSmtpServer , $emailSmtpServerPort )
-$SMTPClient.EnableSsl = $False
-$SMTPClient.Credentials = New-Object System.Net.NetworkCredential( $mail_user , $local_pass );
-$SMTPClient.EnableSsl = $true;
-$SMTPClient.Send( $emailMessage ) 
-
-
-Exit 2
 }
+$mes_reboot = "Server info = $ip, $br_name`r`nPlease make machine reboot before Core installation"
 
-Stop-Transcript
+
+if ($install.ExitCode -eq "0") {Send-Notification}
+elseif ($install.ExitCode -eq "3010") {Send-Notification 'Restart-Computer -Force'; Send-To-Slack "Core machine $ip is rebooting, please wait..."}
+elseif ($install.ExitCode -eq "45") {Send-Mail $mes_reboot; Send-To-Slack $mes_reboot; Exit 1}
+elseif ($install.ExitCode -eq "47") {Send-Mail "some of thing could work not properly, please make investigation, see Core log file for more info"}
+
 
 @' 
 Directory should consist of this list of files:
