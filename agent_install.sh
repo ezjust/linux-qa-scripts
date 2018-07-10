@@ -326,7 +326,7 @@ function check_install {
 
 
 packages_result=`$list | grep -w 'rapidrecovery-agent\|rapidrecovery-mono\|rapidrecovery-repo' | wc -l`
-configuration_result=`less /var/log/apprecovery/configuration.log | grep Fail >> /dev/null; echo $?`
+configuration_result=`less /var/log/apprecovery/configuration_tmp.log | grep Fail >> /dev/null; echo $?`
 installation_result=`cat /var/log/apprecovery/agent.installation.log | grep Fail >> /dev/null; echo $?`
 if [[ "$packages_result" -eq "3" && "$configuration_result" -ne "0" && "$installation_result" -ne "0" ]]
 then
