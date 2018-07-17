@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 version="1.1.1"
 ext2_min_version="3.6"
 ignore="/dev/null 2>&1"
@@ -102,8 +102,8 @@ done
 
 function check_and_parse_disks {
 
-if [[ $DISK -eq "default" ]]; then
-   	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf) >> /dev/null 2>&1
+if [[ $DISK -eq "default" ]] >> /dev/null 2>&1; then 
+   	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf) 
 fi
 
 IFS_OLD=$IFS
@@ -385,8 +385,8 @@ done
 (echo d; echo w;) | fdisk /dev/md/md5 # to complete clean of the /dev/md/md5p1
 
 
-sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf
-sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm.conf
+sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm/mdadm.conf >> /dev/null 2>&1
+sed -i.bak '/linear_0\|stripe_0\|mirror_0\|md5/d' /etc/mdadm.conf >> /dev/null 2>&1
 partprobe
 
 	for i in {1..8}
@@ -427,14 +427,14 @@ sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\
         do
 		for i in 1 2 3 4
 		do
-	            (echo d; echo ; echo ;) | gdisk ${disks[$m]}
+	            (echo d; echo ; echo ;) | gdisk ${disks[$m]} >> /dev/null 2>&1
 		done
         done
 
 for i in 0 1 2 3 4
 do
 	    dd if=/dev/zero of=${disks[$i]} bs=10MB count=2
-		sgdisk -Z ${disks[$i]}
+		sgdisk -Z ${disks[$i]} >> /dev/null 2>&1
 done
 
 
@@ -476,10 +476,10 @@ function needed_packages {
 
 rpm -? 1>> /dev/null 2>&1  && pacman="rpm -qa" || pacman="dpkg --list"   # get the appripriate command for the list of the installed packages
 
-if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" ]]; then
-	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc, thin-provisioning-tools"
+if [[ "`$pacman | grep lvm2 >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep bl >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep btrfs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep xfsprogs >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep mdadm >> /dev/null; echo $?`" -ne "0" || "`$pacman | grep parted >> /dev/null; echo $?`" -ne "0" ]]; then
+	echo "Not all packages are installed: lvm2, mdadm, btrfs-progs, xfsprogs, bc, thin-provisioning-tools, parted"
 	echo ""
-	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc\|thin-provisioning-tools'
+	$pacman | grep -w 'lvm2\|mdadm\|btrfs-progs\|xfsprogs\|bc\|thin-provisioning-tools\|parted'
 	exit 1
 fi
 }
@@ -606,7 +606,7 @@ do
 
 	(echo n; echo ; echo ; echo w) | fdisk ${disk[$m]} >> /dev/null 2>&1
 done
-partprobe
+partprobe >> /dev/null 2>&1
 
 for i in 1 2 3 5
 do
@@ -626,7 +626,7 @@ else
 	echo /dev/md/md0-linear_0 was not created. Skipped assemble of this device.
 fi
 
-partprobe
+partprobe >> /dev/null 2>&1
 mdadm --create /dev/md/md0-stripe_0 --level=stripe --raid-devices=2 ${disks[3]}2 ${disks[4]}2
 
 if [ -b /dev/md/md0-stripe_0 ]; then
@@ -637,7 +637,7 @@ else
 	echo /dev/md/md0-stripe_0 was not created. Skipped assemble of this device
 fi
 
-partprobe
+partprobe >> /dev/null 2>&1
 yes | mdadm --create /dev/md/md0-mirror_0 --level=mirror --raid-devices=2 ${disks[3]}3 ${disks[4]}3
 
 if [ -b /dev/md/md0-mirror_0 ]; then
@@ -980,7 +980,7 @@ function fstab {
      IFS=$'\n'
      set -o noglob
      
-     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | grep -v "md[0-9]*"| awk '{print $1,$2,$3}'` )
+     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
      	for ((i = 0; i < ${#fstab[@]}; i++)); do
       	  if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" ` ]]; then
            if [[ $FORMAT = "uuid" ]]; then
@@ -989,20 +989,21 @@ function fstab {
               mpfs=$(echo ${fstab[$i]} | awk '{print $2,$3}') 
               echo $uuid $mpfs defaults 0 0 >> /etc/fstab
            else
-              if [[ "${fstab[$i]}" == "/dev/md124p1 /mnt/md5p1 ext4" ]]; then
-                    fstab[$i]="/dev/md/md5p1 /mnt/md5p1 ext4" # since after reboot /dev/md124p1 becomes /dev/md/md5p1 we use check for this device during mounting and use /dev/md/md5p1 as a default path for this device
-              fi
+              if [[ "${fstab[$i]}" == "/dev/md*" ]]; then
+              	continue #skip raids
+	      fi
               echo ${fstab[$i]} defaults 0 0 >> /etc/fstab
-           fi
-          
+	   fi
           fi
      	done
-        for raid in ${RAID[@]}; do
-        if [ "$raid" != "md5" ]; then
-	    m_point=`df -Th | grep "$raid" | awk '{print $NF}'`
-            echo /dev/md/$raid $m_point ext4 defaults 0 0 >> /etc/fstab
-        fi
-	done
+	if [[ ! $FORMAT ]]; then 
+		for raid in ${RAID[@]}; do
+                	if [ "$raid" != "md5" ]; then
+                   	   m_point=`df -Th | grep "$raid" | awk '{print $NF}'`
+                   	   echo /dev/md/$raid $m_point ext4 defaults 0 0 >> /etc/fstab
+                	fi
+              	done
+	fi
      IFS=$IFS_OLD
      mount -a
 }		
