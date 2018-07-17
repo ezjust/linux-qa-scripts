@@ -103,7 +103,7 @@ done
 function check_and_parse_disks {
 
 if [[ $DISK -eq "default" ]]; then
-   	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf)
+   	DISK=(/dev/sdb,/dev/sdc,/dev/sdd,/dev/sde,/dev/sdf) >> /dev/null 2>&1
 fi
 
 IFS_OLD=$IFS
@@ -189,15 +189,15 @@ mdadm --zero-superblock /dev/md/linear_lvm_part0p1
 mdadm --zero-superblock /dev/md/linear_lvm_part0p3
 mdadm --zero-superblock /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p1
 mdadm --zero-superblock /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p3
-wipefs --force --all /dev/md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2/mirror-md-lvm
-wipefs --force --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p3
-wipefs --force --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p1
-wipefs --force --all /dev/md/linear_lvm_part0p3
-wipefs --force --all /dev/md/linear_lvm_part0p1
+wipefs --all /dev/md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2/mirror-md-lvm
+wipefs --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p3
+wipefs --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p1
+wipefs --all /dev/md/linear_lvm_part0p3
+wipefs --all /dev/md/linear_lvm_part0p1
 mdadm --remove /dev/md/md-mirror-md-lvm
 partprobe
 lvremove -f /dev/mapper/md127p2----liner_vg2_disk5_6_part2_3--liner_lv2_disk5_6_part2_3p2-mirror--md--lvm
-wipefs --force --all /dev/mapper/md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
+wipefs --all /dev/mapper/md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
 vgremove -ff md127p2--liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3p2
 partprobe
 (echo d; echo ; echo d; echo ; echo d; echo ; echo w;) | fdisk /dev/md/linear_lvm_part0
@@ -205,14 +205,14 @@ partprobe
 mdadm --stop /dev/md/linear_lvm_part0
 mdadm --zero-superblock /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
 mdadm --zero-superblock /dev/mapper/striped_vg2_disk5_6_part5_1-striped_lv2_disk5_6_part5_1
-wipefs --force --all /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
+wipefs --all /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
 mdadm --remove /dev/md/linear_lvm_part0
 partprobe
 lvremove -f /dev/mapper/liner_vg_disk5_6_part1_4-liner_lv_disk5_6_part1_4
 (echo d; echo ; echo d; echo ; echo d; echo ; echo w;) | fdisk /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3
 mdadm --zero-superblock /dev/mapper/striped_vg2_disk5_6_part5_1-striped_lv2_disk5_6_part5_1
 partprobe
-wipefs --force --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3
+wipefs --all /dev/mapper/liner_vg2_disk5_6_part2_3-liner_lv2_disk5_6_part2_3
 partprobe
 
 mdadm --remove /dev/md/mirror_lvm_part*
@@ -252,7 +252,7 @@ list_lvms=(
 
 for i in ${list_lvms[@]}
 do
-	wipefs --force --all $i
+	wipefs --all $i
 done
 
 for i in ${list_lvms[@]}
@@ -360,7 +360,7 @@ list_devices=(
 
 for i in ${list_devices[@]}
 do
-	wipefs --force --all $i
+	wipefs --all $i
 	lvremove -f $i
 done
 
@@ -376,8 +376,8 @@ for i in ${list_raid[@]}
 do
 	mdadm --stop $i
 	mdadm --zero-superblock ${disks[3]}${list_inc[$k]} ${disks[4]}${list_inc[$k]}
-	wipefs --force --all ${disks[3]}${list_inc[$k]}
-	wipefs --force --all ${disks[4]}${list_inc[$k]}
+	wipefs --all ${disks[3]}${list_inc[$k]}
+	wipefs --all ${disks[4]}${list_inc[$k]}
 	mdadm --remove $i
 	let k=$k+1
 done
@@ -394,23 +394,23 @@ partprobe
 
 		(echo d; echo $i; echo w;) | fdisk ${disks[0]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs --force --all ${disks[0]}$i
+		wipefs --all ${disks[0]}$i
                 #umount $disk2$i
                 (echo d; echo $i; echo w;) | fdisk ${disks[1]} >> /dev/null 2>&1
                 sleep 0.2
-		wipefs --force --all ${disks[1]}$i
+		wipefs --all ${disks[1]}$i
 		#umount $disk3$i
 	        (echo d; echo $i; echo w;) | fdisk ${disks[2]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs --force --all ${disks[2]}$i
+		wipefs --all ${disks[2]}$i
 		#umount $disk4$i
 		(echo d; echo $i; echo w;) | fdisk ${disks[3]} >> /dev/null 2>&1
 	        sleep 0.2
-		wipefs --force --all ${disks[3]}$i
+		wipefs --all ${disks[3]}$i
 		#umount $disk5$i
 		(echo d; echo $i; echo w;) | fdisk ${disks[4]} >> /dev/null 2>&1
         	sleep 0.2
-		wipefs --force --all ${disks[4]}$i
+		wipefs --all ${disks[4]}$i
 	done
 
 sed -i.bak '/_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|-mirror_0\|_separate\|partition-ext4\|md5p1\|thinlvm\|md127p2-\|md-mirror-md-lvm/d' /etc/fstab
@@ -610,8 +610,8 @@ partprobe
 
 for i in 1 2 3 5
 do
-    wipefs --force --all ${disks[3]}$i
-    wipefs --force --all ${disks[4]}$i
+    wipefs --all ${disks[3]}$i
+    wipefs --all ${disks[4]}$i
     mdadm --zero-superblock ${disks[3]}$i ${disks[4]}$i
 done
 
@@ -688,7 +688,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}1" "${disk[3]}1"
 	vgcreate linear_xfs "${disk[2]}1" "${disk[3]}1"
 	lvcreate -Zy -l 100%VG -n linear_xfs linear_xfs
-	wipefs --force --all /dev/linear_xfs/linear_xfs
+	wipefs --all /dev/linear_xfs/linear_xfs
 	linear_xfs=/dev/linear_xfs/linear_xfs
 	mkdir /mnt/linear_xfs; linear_xfs_mp=/mnt/linear_xfs
 	sleep 0.2
@@ -698,7 +698,7 @@ function lvm_partitions_create {
 	pvcreate  "${disk[2]}5" "${disk[3]}5"
 	vgcreate linear_ext4 "${disk[2]}5" "${disk[3]}5"
 	lvcreate -Zy -l 100%VG -n linear_ext4 linear_ext4
-	wipefs --force --all /dev/linear_ext4/linear_ext4
+	wipefs --all /dev/linear_ext4/linear_ext4
 	linear_ext4=/dev/linear_ext4/linear_ext4
 	mkdir /mnt/linear_ext4; linear_ext4_mp=/mnt/linear_ext4
 	sleep 0.2
@@ -709,7 +709,7 @@ function lvm_partitions_create {
 	vgcreate striped_xfs "${disk[2]}2" "${disk[3]}2"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_xfs striped_xfs
 	striped_xfs=/dev/striped_xfs/striped_xfs
-	wipefs --force --all "$striped_xfs"
+	wipefs --all "$striped_xfs"
 	mkdir /mnt/striped_xfs; striped_xfs_mp=/mnt/striped_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/striped_xfs/striped_xfs
@@ -719,7 +719,7 @@ function lvm_partitions_create {
 	vgcreate striped_ext4 "${disk[2]}6" "${disk[3]}6"
 	lvcreate -Zy -l 100%VG -i2 -I64 -n striped_ext4 striped_ext4
 	striped_ext4=/dev/striped_ext4/striped_ext4
-	wipefs --force --all "$striped_ext4"
+	wipefs --all "$striped_ext4"
 	mkdir /mnt/striped_ext4; striped_ext4_mp=/mnt/striped_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/striped_ext4/striped_ext4
@@ -733,7 +733,7 @@ function lvm_partitions_create {
                 lvcreate -Zy -l 50%VG -m1 --mirrorlog core -n mirrored_xfs mirrored_xfs
         fi
         mirrored_xfs=/dev/mirrored_xfs/mirrored_xfs
-	wipefs --force --all "$mirrored_xfs"
+	wipefs --all "$mirrored_xfs"
 	mkdir /mnt/mirrored_xfs; mirrored_xfs_mp=/mnt/mirrored_xfs
 	sleep 0.2
 	mkfs.xfs -f /dev/mirrored_xfs/mirrored_xfs
@@ -747,7 +747,7 @@ function lvm_partitions_create {
 	        lvcreate -Zy -l 50%VG -m1 --mirrorlog core  -n mirrored_ext4 mirrored_ext4
 	fi
 	mirrored_ext4=/dev/mirrored_ext4/mirrored_ext4
-	wipefs --force --all "$mirrored_ext4"
+	wipefs --all "$mirrored_ext4"
 	mkdir /mnt/mirrored_ext4; mirrored_ext4_mp=/mnt/mirrored_ext4
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirrored_ext4/mirrored_ext4
@@ -761,7 +761,7 @@ function lvm_partitions_create {
 	if [[ "$mirror_separate_exit_code" -eq "5" ]]; then
         	lvcreate --type mirror -l 33%VG -m 1 -n mirror_separate mirror_separate
 	fi
-	wipefs --force --all /dev/mirror_separate/mirror_separate >> /dev/null 2>&1;
+	wipefs --all /dev/mirror_separate/mirror_separate >> /dev/null 2>&1;
 	mkdir /mnt/mirror_separate
 	sleep 0.2
 	mkfs.ext4 -F /dev/mirror_separate/mirror_separate
@@ -771,9 +771,9 @@ function lvm_partitions_create {
         pvcreate "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
         vgcreate pool "${disk[5]}8" "${disk[5]}6" "${disk[4]}6"
         lvcreate -l 100%VG -T pool/lvmpool
-        wipefs --force --all /dev/mapper/lvmpool >> /dev/null 2>&1;
+        wipefs --all /dev/mapper/lvmpool >> /dev/null 2>&1;
         lvcreate -V100G -T pool/lvmpool -n thinlvm
-        wipefs --force --all /dev/mapper/pool-thinlvm
+        wipefs --all /dev/mapper/pool-thinlvm
         mkfs.xfs -f /dev/mapper/pool-thinlvm
         mkdir /mnt/thinlvm
         #mount /dev/mapper/pool-thinlvm /mnt/thinlvm/
@@ -873,26 +873,26 @@ function extended {
     pvcreate -f "${disk[1]}1" "${disk[2]}4"
     vgcreate -f liner_vg_disk5_6_part1_4 "${disk[1]}1" "${disk[2]}4"
     vgcreate -f liner_vg_disk5_6_part1_4 "${disk[1]}1" "${disk[2]}4"
-    wipefs --force --all /dev/mapper/liner_lv_disk5_6_part1_4
-    wipefs --force --all /dev/mapper/liner_vg_disk5_6_part1_4
+    wipefs --all /dev/mapper/liner_lv_disk5_6_part1_4
+    wipefs --all /dev/mapper/liner_vg_disk5_6_part1_4
     lvcreate -Zy -l 100%VG -n liner_lv_disk5_6_part1_4 liner_vg_disk5_6_part1_4    
 
     pvcreate -f "${disk[1]}2" "${disk[2]}3"
     vgcreate -f liner_vg2_disk5_6_part2_3 "${disk[1]}2" "${disk[2]}3"
-    wipefs --force --all /dev/mapper/liner_lv2_disk5_6_part2_3
-    wipefs --force --all /dev/mapper/liner_vg2_disk5_6_part2_3
+    wipefs --all /dev/mapper/liner_lv2_disk5_6_part2_3
+    wipefs --all /dev/mapper/liner_vg2_disk5_6_part2_3
     lvcreate -Zy -l 100%VG -n liner_lv2_disk5_6_part2_3 liner_vg2_disk5_6_part2_3
 
     pvcreate -f "${disk[1]}3" "${disk[2]}2"
     vgcreate -f striped_vg1_disk5_6_part3_2 "${disk[1]}3" "${disk[2]}2"
-    wipefs --force --all /dev/mapper/striped_lv1_disk5_6_part3_2
-    wipefs --force --all /dev/mapper/striped_vg1_disk5_6_part3_2
+    wipefs --all /dev/mapper/striped_lv1_disk5_6_part3_2
+    wipefs --all /dev/mapper/striped_vg1_disk5_6_part3_2
     lvcreate -Zy -l 100%VG -i2 -I64 -n striped_lv1_disk5_6_part3_2 striped_vg1_disk5_6_part3_2
 
     pvcreate -f "${disk[1]}5" "${disk[2]}1"
     vgcreate -f striped_vg2_disk5_6_part5_1 "${disk[1]}5" "${disk[2]}1"
-    wipefs --force --all /dev/mapper/striped_lv2_disk5_6_part5_1
-    wipefs --force --all /dev/mapper/striped_vg2_disk5_6_part5_1
+    wipefs --all /dev/mapper/striped_lv2_disk5_6_part5_1
+    wipefs --all /dev/mapper/striped_vg2_disk5_6_part5_1
     lvcreate -Zy -l 100%VG -i2 -I64 -n striped_lv2_disk5_6_part5_1 striped_vg2_disk5_6_part5_1
     #126 raild
 
@@ -980,7 +980,7 @@ function fstab {
      IFS=$'\n'
      set -o noglob
      
-     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | awk '{print $1,$2,$3}'` )
+     fstab=( `cat /proc/mounts | grep '_ext2\|_ext3\|_ext4\|_xfs\|_btrfs\|-linear_0\|-stripe_0\|_separate\|-mirror_0\|partition-ext4\|md5p1\|thinlvm\|md-mirror-md-lvm\|md127p2-' | grep -v "md[0-9]*"| awk '{print $1,$2,$3}'` )
      	for ((i = 0; i < ${#fstab[@]}; i++)); do
       	  if [[ ! `cat /etc/fstab | grep "${fstab[$i]}" ` ]]; then
            if [[ $FORMAT = "uuid" ]]; then
@@ -997,7 +997,12 @@ function fstab {
           
           fi
      	done
-     
+        for raid in ${RAID[@]}; do
+        if [ "$raid" != "md5" ]; then
+	    m_point=`df -Th | grep "$raid" | awk '{print $NF}'`
+            echo /dev/md/$raid $m_point ext4 defaults 0 0 >> /etc/fstab
+        fi
+	done
      IFS=$IFS_OLD
      mount -a
 }		
